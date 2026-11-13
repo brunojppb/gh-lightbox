@@ -57,7 +57,7 @@ export function createLightbox(root) {
       console.error('[gh-lightbox]', error);
       state = CLOSED;
       host.dataset.phase = state.phase;
-      forceClose(view);
+      teardown(view, null);
     }
   };
 
@@ -91,11 +91,7 @@ function run(view, effect, dispatch) {
       return;
     }
     case 'unmount':
-      cancelAnimations(view.parts);
-      if (effect.item.kind === 'video') handBack(effect.item, view.video);
-      unveilAll();
-      view.dialog.close();
-      clear(view);
+      teardown(view, effect.item);
       return;
   }
 }
@@ -345,33 +341,25 @@ function el(tag, className = '', attributes = {}) {
 }
 
 /**
- * Empties the frame and the strip after the dialog closes.
+ * Closes the lightbox at once and returns the page to how it was. Each step runs even if an earlier one fails.
  * @param {View} view
+ * @param {MediaItem | null} item  The item on show, or null when it is unknown after a failure.
  * @returns {void}
  */
-function clear(view) {
-  view.image.removeAttribute('src');
-  view.strip.replaceChildren();
-}
-
-/**
- * Closes the lightbox at once after a failure. Each step runs even if an earlier one fails.
- * @param {View} view
- * @returns {void}
- */
-function forceClose(view) {
+function teardown(view, item) {
   const steps = [
     () => cancelAnimations(view.parts),
+    () => (item?.kind === 'video' ? handBack(item, view.video) : view.video.pause()),
     () => unveilAll(),
-    () => view.video.pause(),
     () => view.dialog.open && view.dialog.close(),
-    () => clear(view),
+    () => view.image.removeAttribute('src'),
+    () => view.strip.replaceChildren(),
   ];
   for (const step of steps) {
     try {
       step();
     } catch (error) {
-      console.error('[gh-lightbox] force close', error);
+      console.error('[gh-lightbox] teardown', error);
     }
   }
 }
