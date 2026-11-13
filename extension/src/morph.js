@@ -47,9 +47,12 @@ export function morph(parts, direction, item) {
   for (const el of [parts.backdrop, ...parts.controls]) {
     el.animate({ opacity: [from, 1 - from] }, { ...timing, fill: 'forwards' });
   }
+  if (reduced) {
+    return parts.frame.animate({ opacity: [from, 1 - from] }, { ...timing, fill: 'forwards' });
+  }
   const held = transformBetween(layout, current);
-  if (reduced || !pageRect || !isOnScreen(pageRect, viewport()) || !sameAspect(layout, pageRect)) {
-    const shrunk = reduced ? held : `${held} scale(0.96)`;
+  if (!pageRect || !isOnScreen(pageRect, viewport()) || !sameAspect(layout, pageRect)) {
+    const shrunk = `${held} scale(0.96)`;
     const frames =
       direction === 'in'
         ? { opacity: [0, 1], transform: [shrunk, held] }
