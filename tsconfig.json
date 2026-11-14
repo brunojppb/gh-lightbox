@@ -12,5 +12,5 @@
     "noUnusedLocals": true,
     "exactOptionalPropertyTypes": true
   },
-  "include": ["extension/**/*.js", "types/**/*.d.ts", "test/**/*.js"]
+  "include": ["extension/**/*.js", "types/**/*.d.ts", "test/**/*.js", "scripts/**/*.mjs"]
 }

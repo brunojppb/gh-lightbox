@@ -236,6 +236,26 @@ test.describe('on a pull request page', () => {
     expect(await opacityOf(page, 'i1')).toBe('1');
   });
 
+  test('an image that GitHub detaches while open and puts back later is visible after close', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i1').click();
+    await expectPhase(app, 'open');
+    await page.evaluate(() => {
+      const image = /** @type {HTMLElement} */ (document.getElementById('i1'));
+      const holder = /** @type {HTMLElement} */ (image.parentElement);
+      Object.assign(window, { detached: { image, holder } });
+      image.remove();
+    });
+    await page.keyboard.press('Escape');
+    await expectPhase(app, 'closed');
+    await page.evaluate(() => {
+      const { image, holder } = /** @type {any} */ (window).detached;
+      holder.append(image);
+    });
+    expect(await opacityOf(page, 'i1')).toBe('1');
+  });
+
   test('the X button and the backdrop close it', async ({ app }) => {
     const { page } = app;
     await visit(app, PULL);

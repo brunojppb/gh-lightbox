@@ -20,6 +20,8 @@ const ASPECT_TOLERANCE = 0.05;
 const SPRING_SAMPLES = 40;
 const MAX_SPRING_MS = 5000;
 const VEIL_ID = 'gh-lightbox-veil';
+/** @type {Set<Animation>} Held by reference: document.getAnimations() skips an element that GitHub detached. */
+const veils = new Set();
 
 /** Spring values from the beui image viewer source. */
 export const SPRING = springEasing({ stiffness: 360, damping: 32, mass: 0.6 });
@@ -91,14 +93,17 @@ export function slide(frame, direction) {
  */
 export function veil(el) {
   unveilAll();
-  el?.animate({ opacity: [0, 0] }, { duration: 1, fill: 'forwards', id: VEIL_ID });
+  if (el) veils.add(el.animate({ opacity: [0, 0] }, { duration: 1, fill: 'forwards', id: VEIL_ID }));
 }
+
 
 /**
  * Shows every page element that `veil` hid.
  * @returns {void}
  */
 export function unveilAll() {
+  for (const animation of veils) animation.cancel();
+  veils.clear();
   for (const animation of document.getAnimations()) {
     if (animation.id === VEIL_ID) animation.cancel();
   }
