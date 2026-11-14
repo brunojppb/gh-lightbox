@@ -425,6 +425,24 @@ test.describe('on a pull request page', () => {
     expect(await opacityOf(page, 'v1')).toBe('1');
   });
 
+  test('the expand button follows the video when the page scrolls under the pointer', async ({ app }) => {
+    const { page } = app;
+    const launcher = page.locator('gh-lightbox .launcher');
+    await visit(app, PULL);
+    await page.locator('#v1').scrollIntoViewIfNeeded();
+    await page.locator('#v1').hover({ position: { x: 100, y: 100 } });
+    await expect(launcher).toBeVisible();
+    const top = (await launcher.boundingBox())?.y ?? NaN;
+    await page.mouse.wheel(0, 60);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await page.waitForTimeout(300);
+    await expect(launcher).toBeVisible();
+    const [button, video] = await Promise.all([launcher.boundingBox(), page.locator('#v1').boundingBox()]);
+    expect(button?.y).not.toBe(top);
+    expect(button?.y).toBeCloseTo((video?.y ?? NaN) + 8, 0);
+    expect((button?.x ?? NaN) + (button?.width ?? NaN)).toBeCloseTo((video?.x ?? NaN) + (video?.width ?? NaN) - 8, 0);
+  });
+
   test('Space in the lightbox toggles the focused video', async ({ app }) => {
     const { page } = app;
     const stage = page.locator('gh-lightbox video.media');

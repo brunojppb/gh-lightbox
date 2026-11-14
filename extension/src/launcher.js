@@ -28,6 +28,22 @@ export function installVideoLauncher(root, open) {
     button.hidden = true;
     video = null;
   };
+  const place = () => {
+    if (!video?.isConnected) return hide();
+    const rect = video.getBoundingClientRect();
+    button.style.top = `${rect.top + INSET}px`;
+    button.style.left = `${rect.right - INSET - BUTTON_SIZE}px`;
+    button.hidden = false;
+  };
+  let frame = 0;
+  // Scrolling moves the video under a still pointer. The pointerout that follows hides the button when the pointer leaves.
+  const replace = () => {
+    if (!video || frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      place();
+    });
+  };
 
   window.addEventListener(
     'pointerover',
@@ -35,10 +51,7 @@ export function installVideoLauncher(root, open) {
       const target = event.target;
       if (!(target instanceof HTMLVideoElement) || target === video || !galleryFor(target)) return;
       video = target;
-      const rect = target.getBoundingClientRect();
-      button.style.top = `${rect.top + INSET}px`;
-      button.style.left = `${rect.right - INSET - BUTTON_SIZE}px`;
-      button.hidden = false;
+      place();
     },
     true,
   );
@@ -53,9 +66,8 @@ export function installVideoLauncher(root, open) {
   button.addEventListener('pointerleave', (event) => {
     if (event.relatedTarget !== video) hide();
   });
-  // The position is stale after a scroll or resize. The next pointerover places the button again.
-  window.addEventListener('scroll', hide, { capture: true, passive: true });
-  window.addEventListener('resize', hide);
+  window.addEventListener('scroll', replace, { capture: true, passive: true });
+  window.addEventListener('resize', replace);
   button.addEventListener('click', () => {
     const page = video;
     const gallery = page && galleryFor(page);
