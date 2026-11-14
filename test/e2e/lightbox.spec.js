@@ -340,6 +340,16 @@ test.describe('on a pull request page', () => {
     await expectPhase(app, 'closed');
   });
 
+  test('the gallery skips an image that is hidden by CSS', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i-light').scrollIntoViewIfNeeded();
+    await page.locator('#i-light').click();
+    await expectPhase(app, 'open');
+    await expect(page.locator('gh-lightbox .counter')).toHaveText('1 / 2');
+    await expect(page.locator('gh-lightbox .strip button')).toHaveCount(2);
+  });
+
   test('GitHub shortcuts do not fire while the lightbox is open', async ({ app }) => {
     const { page } = app;
     const presses = () => page.evaluate(() => /** @type {any} */ (window).__j);

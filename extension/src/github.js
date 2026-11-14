@@ -130,12 +130,22 @@ function isReviewMedia(el) {
   const link = el.closest('a');
   // A link the author wrote must keep its destination. GitHub's own wrapper is not one.
   if (link && comment.contains(link) && !isUploadLink(link, media)) return false;
-  // A closed <details> has no box. Its media stays in the gallery.
-  if (el.getClientRects().length > 0) {
-    const { width, height } = el.getBoundingClientRect();
-    if (width < MIN_SIDE && height < MIN_SIDE) return false;
-  }
+  if (el.getClientRects().length === 0) return inClosedDetails(el);
+  const { width, height } = el.getBoundingClientRect();
+  if (width < MIN_SIDE && height < MIN_SIDE) return false;
   return true;
+}
+
+/**
+ * Returns true when a closed <details> is the reason `el` has no box. Its media stays in the gallery.
+ * @param {Element} el
+ * @returns {boolean}
+ */
+function inClosedDetails(el) {
+  for (let box = el.closest('details'); box; box = box.parentElement?.closest('details') ?? null) {
+    if (!box.open) return true;
+  }
+  return false;
 }
 
 /**
