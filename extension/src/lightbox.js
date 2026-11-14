@@ -120,8 +120,13 @@ function renderItem(view, effect) {
   view.counter.hidden = count === 1;
   view.caption.textContent = item.caption;
   view.caption.hidden = item.caption === '';
+  const focused = /** @type {ShadowRoot} */ (view.dialog.getRootNode()).activeElement;
   view.prevButton.disabled = index === 0;
   view.nextButton.disabled = index === count - 1;
+  // A disabled button drops focus to the inert body, and Space then scrolls the page.
+  if ((focused === view.prevButton || focused === view.nextButton) && /** @type {HTMLButtonElement} */ (focused).disabled) {
+    view.frame.focus();
+  }
   for (const button of view.strip.querySelectorAll('button')) {
     button.setAttribute('aria-current', String(Number(button.dataset.index) === index));
   }

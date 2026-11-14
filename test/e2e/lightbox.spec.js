@@ -472,6 +472,34 @@ test.describe('on a pull request page', () => {
     await expect(page.locator('gh-lightbox .counter')).toHaveText('3 / 4');
   });
 
+  test('focus stays in the lightbox when the focused Next button becomes disabled', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i1').click();
+    await expectPhase(app, 'open');
+    await page.locator('gh-lightbox .next').focus();
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Enter');
+    await expect(page.locator('gh-lightbox .counter')).toHaveText('4 / 4');
+    await expect(page.locator('gh-lightbox .next')).toBeDisabled();
+    expect(await page.evaluate(() => document.activeElement?.localName)).toBe('gh-lightbox');
+    const before = await page.evaluate(() => window.scrollY);
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(250);
+    expect(await page.evaluate(() => window.scrollY)).toBe(before);
+  });
+
+  test('after a launcher open and Escape, focus is on the page video', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#v1').scrollIntoViewIfNeeded();
+    await page.locator('#v1').hover({ position: { x: 100, y: 100 } });
+    await page.locator('gh-lightbox .launcher').click();
+    await expectPhase(app, 'open');
+    await page.keyboard.press('Escape');
+    await expectPhase(app, 'closed');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('v1');
+  });
+
   test('stepping from a video to an image stops the video and shows the image', async ({ app }) => {
     const { page } = app;
     await visit(app, PULL);

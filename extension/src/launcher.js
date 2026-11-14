@@ -57,9 +57,13 @@ export function installVideoLauncher(root, open) {
   window.addEventListener('scroll', hide, { capture: true, passive: true });
   window.addEventListener('resize', hide);
   button.addEventListener('click', () => {
-    const gallery = video && galleryFor(video);
+    const page = video;
+    const gallery = page && galleryFor(page);
     hide();
-    if (gallery) open(gallery);
+    if (!gallery) return;
+    // The button is hidden by now. The dialog gives focus back to the page video on close.
+    page.focus({ preventScroll: true });
+    open(gallery);
   });
 }
 
