@@ -41,6 +41,8 @@ npm run verify:lifecycle
 - `npm run verify:live` drives the public test issue and pull request on github.com, and saves screenshots and video to `.verify/`.
 - `npm run verify:lifecycle` checks every state of the lightbox lifecycle for galleries of 1 to 8 items.
 
+CI runs `check`, `test`, `verify:lifecycle`, and `e2e` on every pull request. It skips `verify:live`, which needs the public test pages.
+
 Agents: `.claude/skills/verify-gh-lightbox` and `.claude/skills/verify-lightbox-lifecycle` describe how to prove a change.
 
 `docs/design.md` explains the design. `test/e2e/make-fixtures.sh` rebuilds the test media with ffmpeg.
