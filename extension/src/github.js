@@ -14,12 +14,6 @@ const MIN_SIDE = 24;
 const GENERIC_ALT = /^(?:|image)$/i;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const NAMED_FILE = /\.[a-z0-9]{2,5}$/i;
-/** Hosts that serve uploaded or proxied images. A link to one of these is GitHub's own wrapper. */
-const IMAGE_HOSTS = [
-  'private-user-images.githubusercontent.com',
-  'user-images.githubusercontent.com',
-  'camo.githubusercontent.com',
-];
 
 /**
  * Returns true for an issue page, a pull request page, and the subpages of a pull request.
@@ -145,20 +139,19 @@ function isReviewMedia(el) {
 }
 
 /**
- * Returns true when `link` is the wrapper GitHub puts around an uploaded or proxied image.
+ * Returns true when `link` is the wrapper GitHub puts around an uploaded or proxied image:
+ * it points at the same asset as the image. A link to another asset is the author's.
  * @param {HTMLAnchorElement} link
  * @param {Element} media
  * @returns {boolean}
  */
 function isUploadLink(link, media) {
   const sources = [media.getAttribute('src'), media.getAttribute('data-canonical-src')];
-  if (sources.some((source) => source && new URL(source, document.baseURI).href === link.href)) return true;
-  try {
-    const { host, pathname } = new URL(link.href);
-    return IMAGE_HOSTS.includes(host) || pathname.startsWith('/user-attachments/assets/');
-  } catch {
-    return false;
-  }
+  return sources.some((source) => {
+    if (!source) return false;
+    const href = new URL(source, document.baseURI).href;
+    return href === link.href || assetKey(href) === assetKey(link.href);
+  });
 }
 
 /**

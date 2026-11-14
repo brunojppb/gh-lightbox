@@ -330,6 +330,16 @@ test.describe('on a pull request page', () => {
     await expectPhase(app, 'closed');
   });
 
+  test('a thumbnail that links to another upload follows the link', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i-thumb').scrollIntoViewIfNeeded();
+    const popup = app.context.waitForEvent('page');
+    await page.locator('#i-thumb').click();
+    expect((await popup).url()).toBe('https://github.com/user-attachments/assets/00000000-0000-4000-8000-0000000000b2');
+    await expectPhase(app, 'closed');
+  });
+
   test('GitHub shortcuts do not fire while the lightbox is open', async ({ app }) => {
     const { page } = app;
     const presses = () => page.evaluate(() => /** @type {any} */ (window).__j);
