@@ -8,10 +8,11 @@
 .launcher {
   position: fixed; z-index: 2147483647;
   width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px;
-  background: rgb(0 0 0 / 0.6); color: #fff; font-size: 18px; line-height: 32px;
+  background: rgb(0 0 0 / 0.6); color: #fff;
   cursor: zoom-in;
 }
 .launcher:hover { background: rgb(0 0 0 / 0.8); }
+.launcher svg { display: block; width: 16px; height: 16px; margin: auto; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 /* The dialog fills the viewport. The UA ::backdrop stays clear; .backdrop draws it, so WAAPI can fade it. */
 dialog {

@@ -19,7 +19,7 @@ export function installVideoLauncher(root, open) {
   button.className = 'launcher';
   button.hidden = true;
   button.setAttribute('aria-label', 'Open video in lightbox');
-  button.textContent = '\u2922';
+  button.append(expandIcon());
   root.append(button);
 
   /** @type {HTMLVideoElement | null} */
@@ -61,4 +61,19 @@ export function installVideoLauncher(root, open) {
     hide();
     if (gallery) open(gallery);
   });
+}
+
+/**
+ * Returns the expand icon: two arrows that point to opposite corners.
+ * @returns {SVGSVGElement}
+ */
+function expandIcon() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', 'M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9');
+  svg.append(path);
+  return svg;
 }
