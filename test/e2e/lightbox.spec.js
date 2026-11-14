@@ -442,6 +442,36 @@ test.describe('on a pull request page', () => {
     await expectPhase(app, 'open');
   });
 
+  test('page-scroll keys leave the page where it is, and the close shrinks back', async ({ app }) => {
+    const { page } = app;
+    const scrollY = () => page.evaluate(() => window.scrollY);
+    await visit(app, PULL);
+    await page.locator('#i1').click();
+    await expectPhase(app, 'open');
+    const before = await scrollY();
+    for (const key of ['ArrowDown', 'ArrowUp', 'Space', 'PageDown', 'PageUp', 'End', 'Home']) {
+      await page.keyboard.press(key);
+      // Keyboard scrolling is smooth, so the offset moves a few frames later.
+      await page.waitForTimeout(250);
+      expect(await scrollY(), key).toBe(before);
+    }
+    await page.keyboard.press('Escape');
+    await expectPhase(app, 'closed');
+    expect(await scrollY()).toBe(before);
+  });
+
+  test('Enter and Space on the Next button still step', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i1').click();
+    await expectPhase(app, 'open');
+    await page.locator('gh-lightbox .next').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('gh-lightbox .counter')).toHaveText('2 / 4');
+    await page.keyboard.press('Space');
+    await expect(page.locator('gh-lightbox .counter')).toHaveText('3 / 4');
+  });
+
   test('stepping from a video to an image stops the video and shows the image', async ({ app }) => {
     const { page } = app;
     await visit(app, PULL);

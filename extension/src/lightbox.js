@@ -32,6 +32,8 @@ import { morph, slide, veil, unveilAll, cancelAnimations } from './morph.js';
  * @property {MorphParts} parts
  */
 
+const PAGE_SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
+
 /**
  * Builds the lightbox inside `root`. The lightbox handles its own keys, buttons, wheel, and page changes.
  * @param {ShadowRoot} root
@@ -230,12 +232,18 @@ function listen(view, phase, dispatch) {
   const onKey = (/** @type {KeyboardEvent} */ event) => {
     if (phase() === 'closed') return;
     const command = keyCommand(event);
+    const path = event.composedPath();
     // The native video controls handle their own keys. The dialog stops them below.
-    if (!command && event.composedPath().includes(view.video)) return;
+    if (!command && path.includes(view.video)) return;
     // GitHub must not act on j, k, ?, or s behind the lightbox.
     event.stopImmediatePropagation();
-    // Space, Tab, and media keys keep their default action.
-    if (event.type !== 'keydown' || !command) return;
+    if (event.type !== 'keydown') return;
+    if (!command) {
+      // The dialog does not stop the page behind it from scrolling. A focused lightbox button keeps Space.
+      const onButton = path.some((node) => node instanceof HTMLButtonElement);
+      if (PAGE_SCROLL_KEYS.has(event.key) && !(event.key === ' ' && onButton)) event.preventDefault();
+      return;
+    }
     event.preventDefault();
     dispatch(command);
   };
