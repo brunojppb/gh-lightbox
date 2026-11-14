@@ -6,7 +6,8 @@
     "check": "tsc --noEmit -p .",
     "test": "node --test \"test/unit/*.test.js\"",
     "e2e": "playwright test test/e2e",
-    "verify:live": "node scripts/verify-live.mjs"
+    "verify:live": "node scripts/verify-live.mjs",
+    "verify:lifecycle": "node scripts/check-lifecycle.mjs"
   },
   "devDependencies": {
     "@playwright/test": "~1.57.0",
