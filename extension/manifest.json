@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "gh-lightbox",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Opens images and videos from GitHub issues and pull requests in a lightbox on the same page.",
   "minimum_chrome_version": "132",
   "content_scripts": [
