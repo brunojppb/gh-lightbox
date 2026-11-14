@@ -1,7 +1,7 @@
 // @ts-check
 // Drives the unpacked extension on the public test issue and pull request on github.com.
 // Saves screenshots, a video for each page, and a report to .verify/<run>/.
-import { mkdirSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
@@ -17,6 +17,8 @@ const VIEWPORT = { width: 1440, height: 900 };
 
 /** @type {{ page: string, check: string, ok: boolean, detail: string }[]} */
 const results = [];
+/** @type {[string, string][]} Recorded video path for each page name. */
+const videos = [];
 
 /**
  * @param {string} page
@@ -130,6 +132,8 @@ async function drive(context, target) {
   await page.keyboard.press('Escape');
   await waitPhase(page, 'closed');
 
+  const recording = await page.video()?.path();
+  if (recording) videos.push([name, recording]);
   await page.close();
 }
 
@@ -149,9 +153,9 @@ try {
 } finally {
   await context.close();
 }
-// Playwright names each video by a random id. Rename them in page order.
-const videos = readdirSync(OUT).filter((f) => f.endsWith('.webm')).sort();
-videos.forEach((file, i) => renameSync(`${OUT}/${file}`, `${OUT}/video-${i + 1}.webm`));
+// Playwright names each video by a random id. Name the page videos and drop the blank start tab.
+for (const [name, path] of videos) renameSync(path, `${OUT}/${name}.webm`);
+for (const file of readdirSync(OUT)) if (/^[0-9a-f]{32}\.webm$/.test(file)) rmSync(`${OUT}/${file}`);
 writeFileSync(`${OUT}/report.json`, JSON.stringify({ run: RUN, results, crashed }, null, 2));
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed} pass, ${failed} fail${crashed ? ', crashed' : ''}. Evidence: ${OUT}`);
