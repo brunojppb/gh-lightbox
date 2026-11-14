@@ -31,10 +31,16 @@ npm install
 npm run check
 npm test
 npm run e2e
+npm run verify:live
+npm run verify:lifecycle
 ```
 
 - `npm run check` type-checks the `// @ts-check` sources with `tsc`.
 - `npm test` runs the unit tests with `node --test`.
 - `npm run e2e` loads the unpacked extension in Chromium on copies of GitHub pages.
+- `npm run verify:live` drives the public test issue and pull request on github.com, and saves screenshots and video to `.verify/`.
+- `npm run verify:lifecycle` checks every state of the lightbox lifecycle for galleries of 1 to 8 items.
+
+Agents: `.claude/skills/verify-gh-lightbox` and `.claude/skills/verify-lightbox-lifecycle` describe how to prove a change.
 
 `docs/design.md` explains the design. `test/e2e/make-fixtures.sh` rebuilds the test media with ffmpeg.
