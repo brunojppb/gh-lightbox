@@ -1,15 +1,20 @@
 {
   "name": "gh-lightbox",
-  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit -p .",
     "test": "node --test \"test/unit/*.test.js\"",
     "e2e": "playwright test test/e2e",
     "verify:live": "node scripts/verify-live.mjs",
-    "verify:lifecycle": "node scripts/check-lifecycle.mjs"
+    "verify:lifecycle": "node scripts/check-lifecycle.mjs",
+    "changeset": "changeset",
+    "version-packages": "changeset version && node scripts/sync-manifest-version.mjs",
+    "release": "changeset git-tag"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
     "@playwright/test": "~1.57.0",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
