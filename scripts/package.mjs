@@ -25,8 +25,16 @@ function packageExtension() {
     .split('\n')
     .filter((entry) => entry && !entry.endsWith('/'));
   const stray = entries.filter((entry) => !ALLOWED.test(entry));
-  if (!entries.includes('manifest.json')) throw new Error(`${zip} has no manifest.json at its root`);
-  if (stray.length) throw new Error(`${zip} has unexpected files: ${stray.join(', ')}`);
+  const problem = !entries.includes('manifest.json')
+    ? 'has no manifest.json at its root'
+    : stray.length
+      ? `has unexpected files: ${stray.join(', ')}`
+      : '';
+  if (problem) {
+    // A bad zip left in dist/ could still get uploaded by hand.
+    rmSync(zip, { force: true });
+    throw new Error(`${zip} ${problem}`);
+  }
   return zip;
 }
 
