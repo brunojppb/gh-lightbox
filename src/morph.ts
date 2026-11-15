@@ -1,17 +1,14 @@
-// @ts-check
 // Every Web Animations call lives in this file. The rect helpers at the bottom are pure.
+import type { MediaItem, Rect, Size } from './types.ts';
 
-/** @typedef {import('./types.js').MediaItem} MediaItem */
-/** @typedef {import('./types.js').Rect} Rect */
-/** @typedef {import('./types.js').Size} Size */
-
-/**
- * The lightbox elements that animate on open and close.
- * @typedef {object} MorphParts
- * @property {HTMLElement} frame  Holds the media. Its transform carries the morph. transform-origin is 0 0.
- * @property {HTMLElement} backdrop
- * @property {readonly HTMLElement[]} controls  Header, buttons, caption, strip.
- */
+/** The lightbox elements that animate on open and close. */
+export interface MorphParts {
+  /** Holds the media. Its transform carries the morph. transform-origin is 0 0. */
+  frame: HTMLElement;
+  backdrop: HTMLElement;
+  /** Header, buttons, caption, strip. */
+  controls: readonly HTMLElement[];
+}
 
 const FADE = { duration: 200, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
 const SLIDE = { duration: 280, easing: 'cubic-bezier(0.32, 0.72, 0, 1)', distance: 40 };
@@ -20,8 +17,8 @@ const ASPECT_TOLERANCE = 0.05;
 const SPRING_SAMPLES = 40;
 const MAX_SPRING_MS = 5000;
 const VEIL_ID = 'gh-lightbox-veil';
-/** @type {Set<Animation>} Held by reference: document.getAnimations() skips an element that GitHub detached. */
-const veils = new Set();
+/** Held by reference: document.getAnimations() skips an element that GitHub detached. */
+const veils: Set<Animation> = new Set();
 
 /** Spring values from the beui image viewer source. */
 export const SPRING = springEasing({ stiffness: 360, damping: 32, mass: 0.6 });
@@ -31,12 +28,9 @@ export const SPRING = springEasing({ stiffness: 360, damping: 32, mass: 0.6 });
  * backdrop and controls with it. Fades instead when the page element is gone, hidden, or off screen,
  * or when the user prefers reduced motion. Starts from where the frame is now, so it can cut off a
  * running morph or slide.
- * @param {MorphParts} parts
- * @param {'in' | 'out'} direction
- * @param {MediaItem} item
- * @returns {Animation}  The frame animation. Its finish ends the phase.
+ * @returns The frame animation. Its finish ends the phase.
  */
-export function morph(parts, direction, item) {
+export function morph(parts: MorphParts, direction: 'in' | 'out', item: MediaItem): Animation {
   const current = rectOf(parts.frame);
   // A cut-off animation fires no finish event, so it can never settle the wrong phase.
   cancelAnimations(parts);
@@ -71,16 +65,16 @@ export function morph(parts, direction, item) {
 
 /**
  * Slides the frame in from the side the user moved toward.
- * @param {HTMLElement} frame
- * @param {-1 | 1} direction
- * @returns {void}
  */
-export function slide(frame, direction) {
+export function slide(frame: HTMLElement, direction: -1 | 1): void {
   // The latest key press wins.
   for (const animation of frame.getAnimations()) animation.cancel();
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   frame.animate(
-    [{ transform: `translateX(${direction * SLIDE.distance}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+    [
+      { transform: `translateX(${direction * SLIDE.distance}px)`, opacity: 0 },
+      { transform: 'none', opacity: 1 },
+    ],
     { duration: SLIDE.duration, easing: SLIDE.easing },
   );
 }
@@ -88,20 +82,16 @@ export function slide(frame, direction) {
 /**
  * Hides a page element while the lightbox shows its media, and shows any element hidden before.
  * GitHub's style attributes stay untouched.
- * @param {Element | null} el
- * @returns {void}
  */
-export function veil(el) {
+export function veil(el: Element | null): void {
   unveilAll();
   if (el) veils.add(el.animate({ opacity: [0, 0] }, { duration: 1, fill: 'forwards', id: VEIL_ID }));
 }
 
-
 /**
  * Shows every page element that `veil` hid.
- * @returns {void}
  */
-export function unveilAll() {
+export function unveilAll(): void {
   for (const animation of veils) animation.cancel();
   veils.clear();
   for (const animation of document.getAnimations()) {
@@ -111,24 +101,19 @@ export function unveilAll() {
 
 /**
  * Stops every lightbox animation without a finish event.
- * @param {MorphParts} parts
- * @returns {void}
  */
-export function cancelAnimations(parts) {
+export function cancelAnimations(parts: MorphParts): void {
   for (const el of [parts.frame, parts.backdrop, ...parts.controls]) {
     for (const animation of el.getAnimations()) animation.cancel();
   }
 }
 
-// Pure helpers. Exported for node --test.
+// Pure helpers. Exported for the unit tests.
 
 /**
  * Returns the CSS transform that puts a box laid out at `layout` onto `target`, with transform-origin 0 0.
- * @param {Rect} layout
- * @param {Rect} target
- * @returns {string}
  */
-export function transformBetween(layout, target) {
+export function transformBetween(layout: Rect, target: Rect): string {
   const sx = target.width / layout.width;
   const sy = target.height / layout.height;
   return `translate(${target.x - layout.x}px, ${target.y - layout.y}px) scale(${sx}, ${sy})`;
@@ -136,12 +121,9 @@ export function transformBetween(layout, target) {
 
 /**
  * Returns the part of `box` where the media paints. A video letterboxes inside its box. An image fills it.
- * @param {'image' | 'video'} kind
- * @param {Rect} box
- * @param {Size | null} size  Natural size. Null means the box is the best guess.
- * @returns {Rect}
+ * @param size Natural size. Null means the box is the best guess.
  */
-export function visibleRect(kind, box, size) {
+export function visibleRect(kind: 'image' | 'video', box: Rect, size: Size | null): Rect {
   if (kind === 'image' || !size) return box;
   const scale = Math.min(box.width / size.width, box.height / size.height);
   const width = size.width * scale;
@@ -151,11 +133,8 @@ export function visibleRect(kind, box, size) {
 
 /**
  * Returns true when `rect` has an area and overlaps `viewport`.
- * @param {Rect} rect
- * @param {Rect} viewport
- * @returns {boolean}
  */
-export function isOnScreen(rect, viewport) {
+export function isOnScreen(rect: Rect, viewport: Rect): boolean {
   return (
     rect.width > 0 &&
     rect.height > 0 &&
@@ -169,20 +148,18 @@ export function isOnScreen(rect, viewport) {
 /**
  * Returns true when the two rects differ in aspect ratio by at most 5%. A morph between rects that
  * differ more would stretch the media, so the caller fades instead.
- * @param {Rect} a
- * @param {Rect} b
- * @returns {boolean}
  */
-export function sameAspect(a, b) {
+export function sameAspect(a: Rect, b: Rect): boolean {
   return Math.abs(a.width / a.height / (b.width / b.height) - 1) <= ASPECT_TOLERANCE;
 }
 
 /**
  * Returns a CSS `linear()` easing and a duration in ms that follow a damped spring from 0 to 1.
- * @param {{ stiffness: number, damping: number, mass: number }} spring
- * @returns {{ easing: string, duration: number }}
  */
-export function springEasing({ stiffness, damping, mass }) {
+export function springEasing({ stiffness, damping, mass }: { stiffness: number; damping: number; mass: number }): {
+  easing: string;
+  duration: number;
+} {
   // WAAPI has no spring timing. linear() plays a sampled one.
   const dt = 0.001;
   const path = [0];
@@ -199,17 +176,11 @@ export function springEasing({ stiffness, damping, mass }) {
   );
   return { easing: `linear(${points.join(', ')})`, duration };
 }
-
-/**
- * @param {Element} el
- * @returns {Rect}
- */
-function rectOf(el) {
+function rectOf(el: Element): Rect {
   const { x, y, width, height } = el.getBoundingClientRect();
   return { x, y, width, height };
 }
 
-/** @returns {Rect} */
-function viewport() {
+function viewport(): Rect {
   return { x: 0, y: 0, width: innerWidth, height: innerHeight };
 }

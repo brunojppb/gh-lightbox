@@ -1,7 +1,5 @@
-// @ts-check
-import { galleryFor } from './github.js';
-
-/** @typedef {import('./types.js').Gallery} Gallery */
+import { galleryFor } from './github.ts';
+import type { Gallery } from './types.ts';
 
 /** Pixels from the video's top right corner. */
 const INSET = 8;
@@ -10,11 +8,8 @@ const BUTTON_SIZE = 32;
 /**
  * Shows an expand button over a review video while the pointer is on the video.
  * The button opens the video in the lightbox. A click on the video itself still reaches its native controls.
- * @param {ShadowRoot} root
- * @param {(gallery: Gallery) => void} open
- * @returns {void}
  */
-export function installVideoLauncher(root, open) {
+export function installVideoLauncher(root: ShadowRoot, open: (gallery: Gallery) => void): void {
   const button = document.createElement('button');
   button.className = 'launcher';
   button.hidden = true;
@@ -22,8 +17,7 @@ export function installVideoLauncher(root, open) {
   button.append(expandIcon());
   root.append(button);
 
-  /** @type {HTMLVideoElement | null} */
-  let video = null;
+  let video: HTMLVideoElement | null = null;
   const hide = () => {
     button.hidden = true;
     video = null;
@@ -81,9 +75,8 @@ export function installVideoLauncher(root, open) {
 
 /**
  * Returns the expand icon: two arrows that point to opposite corners.
- * @returns {SVGSVGElement}
  */
-function expandIcon() {
+function expandIcon(): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('viewBox', '0 0 16 16');

@@ -1,4 +1,3 @@
-// @ts-check
 // Builds the Chrome Web Store images: the promo tile and README banner from SVG,
 // and screenshots of the unpacked extension on the showcase comment of the demo pull request.
 import { mkdirSync } from 'node:fs';
@@ -6,7 +5,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const EXTENSION = `${ROOT}extension`;
+// The build output. Each package script that loads the extension runs `vp build` first.
+const EXTENSION = `${ROOT}dist/extension`;
 const SHOTS = `${ROOT}store/screenshots`;
 // The store takes 1280x800 screenshots and a 440x280 small promo tile.
 const SCREEN = { width: 1280, height: 800 };
@@ -18,48 +18,31 @@ const SVGS = [
 // The URL has no #issuecomment anchor, because GitHub draws a focus outline on the anchored comment.
 const SHOWCASE = 'https://github.com/brunojppb/gh-lightbox/pull/2';
 const FIRST_PHOTO = 'img[alt="Northern lights over Lofoten"]';
-
-/**
- * @param {import('@playwright/test').Page} page
- * @param {string} phase
- * @returns {Promise<void>}
- */
-async function waitPhase(page, phase) {
+async function waitPhase(page: import('@playwright/test').Page, phase: string): Promise<void> {
   await page.locator(`gh-lightbox[data-phase="${phase}"]`).waitFor({ state: 'attached', timeout: 5000 });
 }
-
-/**
- * @param {import('@playwright/test').Page} page
- * @param {string} url
- * @returns {Promise<void>}
- */
-async function visit(page, url) {
+async function visit(page: import('@playwright/test').Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: 'load' });
   await page.locator('gh-lightbox').waitFor({ state: 'attached', timeout: 10000 });
 }
-
-/**
- * @param {import('@playwright/test').Page} page
- * @param {string} name
- * @returns {Promise<void>}
- */
-async function shot(page, name) {
+async function shot(page: import('@playwright/test').Page, name: string): Promise<void> {
   await page.screenshot({ path: `${SHOTS}/${name}.png` });
   console.log(`wrote store/screenshots/${name}.png`);
 }
 
 /**
  * Captures the store screenshots with the extension loaded.
- * @param {import('@playwright/test').BrowserContext} context
- * @returns {Promise<void>}
  */
-async function captureScreens(context) {
+async function captureScreens(context: import('@playwright/test').BrowserContext): Promise<void> {
   const page = await context.newPage();
   const host = page.locator('gh-lightbox');
 
   await visit(page, SHOWCASE);
   // The lightbox makes one gallery from each comment, so the showcase gallery holds only its own media.
-  const comment = page.locator('.markdown-body').filter({ has: page.locator(FIRST_PHOTO) }).last();
+  const comment = page
+    .locator('.markdown-body')
+    .filter({ has: page.locator(FIRST_PHOTO) })
+    .last();
   const photo = comment.locator(FIRST_PHOTO);
   await photo.scrollIntoViewIfNeeded();
   await photo.click();
@@ -107,11 +90,11 @@ try {
 
 /**
  * Renders an SVG to a PNG of its exact size.
- * @param {import('@playwright/test').BrowserContext} ctx
- * @param {{ from: string, to: string, size: { width: number, height: number } }} svg
- * @returns {Promise<void>}
  */
-async function renderSvg(ctx, { from, to, size }) {
+async function renderSvg(
+  ctx: import('@playwright/test').BrowserContext,
+  { from, to, size }: { from: string; to: string; size: { width: number; height: number } },
+): Promise<void> {
   const page = await ctx.newPage();
   await page.setViewportSize(size);
   // A file: page lets the SVG load the icon it links by a relative path.

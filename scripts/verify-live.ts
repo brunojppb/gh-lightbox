@@ -1,4 +1,3 @@
-// @ts-check
 // Drives the unpacked extension on the public test issue and pull request on github.com.
 // Saves screenshots, a video for each page, and a report to .verify/<run>/.
 import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -6,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const EXTENSION = `${ROOT}extension`;
+// The build output. Each package script that loads the extension runs `vp build` first.
+const EXTENSION = `${ROOT}dist/extension`;
 const RUN = new Date().toISOString().replace(/[:.]/g, '-');
 const OUT = `${ROOT}.verify/${RUN}`;
 const PAGES = [
@@ -15,44 +15,20 @@ const PAGES = [
 ];
 const VIEWPORT = { width: 1440, height: 900 };
 
-/** @type {{ page: string, check: string, ok: boolean, detail: string }[]} */
-const results = [];
-/** @type {[string, string][]} Recorded video path for each page name. */
-const videos = [];
-
-/**
- * @param {string} page
- * @param {string} check
- * @param {boolean} ok
- * @param {string} [detail]
- */
-function record(page, check, ok, detail = '') {
+const results: { page: string; check: string; ok: boolean; detail: string }[] = [];
+/** Recorded video path for each page name. */
+const videos: [string, string][] = [];
+function record(page: string, check: string, ok: boolean, detail: string = '') {
   results.push({ page, check, ok, detail });
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${page}  ${check}${detail ? `  (${detail})` : ''}`);
 }
-
-/**
- * @param {import('@playwright/test').Page} page
- * @param {string} phase
- */
-async function waitPhase(page, phase) {
+async function waitPhase(page: import('@playwright/test').Page, phase: string) {
   await page.locator(`gh-lightbox[data-phase="${phase}"]`).waitFor({ state: 'attached', timeout: 5000 });
 }
-
-/**
- * @param {import('@playwright/test').Page} page
- * @param {string} name
- * @param {string} shot
- */
-async function snap(page, name, shot) {
+async function snap(page: import('@playwright/test').Page, name: string, shot: string) {
   await page.screenshot({ path: `${OUT}/${name}-${shot}.png` });
 }
-
-/**
- * @param {import('@playwright/test').BrowserContext} context
- * @param {{ name: string, url: string }} target
- */
-async function drive(context, target) {
+async function drive(context: import('@playwright/test').BrowserContext, target: { name: string; url: string }) {
   const { name, url } = target;
   const page = await context.newPage();
   const tabs = () => context.pages().length;
@@ -75,7 +51,12 @@ async function drive(context, target) {
   const counter = await shadow.locator('.counter').textContent();
   const caption = await shadow.locator('.caption').textContent();
   record(name, 'image click opens the lightbox, no new tab', tabs() === before, `tabs ${before} -> ${tabs()}`);
-  record(name, 'counter and caption', /^\d+ \/ \d+$/.test(counter ?? '') && caption === 'Bars', `"${counter}" "${caption}"`);
+  record(
+    name,
+    'counter and caption',
+    /^\d+ \/ \d+$/.test(counter ?? '') && caption === 'Bars',
+    `"${counter}" "${caption}"`,
+  );
 
   await page.keyboard.press('ArrowRight');
   await page.waitForTimeout(500);
@@ -112,10 +93,15 @@ async function drive(context, target) {
   await waitPhase(page, 'open');
   await page.waitForTimeout(1500);
   const stage = await shadow.locator('video.media').evaluate((v) => {
-    const el = /** @type {HTMLVideoElement} */ (v);
+    const el = v as HTMLVideoElement;
     return { time: el.currentTime, paused: el.paused, ready: el.readyState, error: el.error?.code ?? 0 };
   });
-  record(name, 'video plays in the lightbox', stage.ready >= 2 && stage.error === 0 && stage.time > 0, JSON.stringify(stage));
+  record(
+    name,
+    'video plays in the lightbox',
+    stage.ready >= 2 && stage.error === 0 && stage.time > 0,
+    JSON.stringify(stage),
+  );
   await snap(page, name, '08-video');
   await page.keyboard.press('Escape');
   await waitPhase(page, 'closed');

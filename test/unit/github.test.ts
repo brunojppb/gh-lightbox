@@ -1,7 +1,6 @@
-// @ts-check
-import { test } from 'node:test';
+import { test } from 'vite-plus/test';
 import assert from 'node:assert/strict';
-import { isReviewPage, captionFor, assetKey } from '../../extension/src/github.js';
+import { isReviewPage, captionFor, assetKey } from '../../src/github.ts';
 
 test('isReviewPage accepts issues, pulls, and pull subpages only', () => {
   for (const path of ['/o/r/issues/1', '/o/r/pull/2', '/o/r/pull/2/files', '/o/r/pull/2/commits/abc']) {
@@ -18,7 +17,14 @@ test('captionFor prefers real alt text, then the video label, then a file name',
   assert.equal(captionFor({ alt: 'Image', label: '', url: 'https://x.test/files/before.png' }), 'before.png');
   assert.equal(captionFor({ alt: '', label: ' jump-light.mp4 ', url: 'https://x.test/' }), 'jump-light.mp4');
   assert.equal(captionFor({ alt: 'image', label: '', url: `https://github.com/user-attachments/assets/${uuid}` }), '');
-  assert.equal(captionFor({ alt: '', label: '', url: `https://private-user-images.githubusercontent.com/1/22-${uuid}.png?jwt=a.b` }), '');
+  assert.equal(
+    captionFor({
+      alt: '',
+      label: '',
+      url: `https://private-user-images.githubusercontent.com/1/22-${uuid}.png?jwt=a.b`,
+    }),
+    '',
+  );
   assert.equal(captionFor({ alt: '', label: '', url: 'https://x.test/a%20b.png' }), 'a b.png');
   assert.equal(captionFor({ alt: '', label: '', url: 'not a url' }), '');
 });
@@ -33,7 +39,10 @@ test('assetKey names an upload by its UUID, so a new signed URL gives the same k
 });
 
 test('assetKey without a UUID drops the query and hash', () => {
-  assert.equal(assetKey('https://camo.githubusercontent.com/abc/def?x=1#top'), 'https://camo.githubusercontent.com/abc/def');
+  assert.equal(
+    assetKey('https://camo.githubusercontent.com/abc/def?x=1#top'),
+    'https://camo.githubusercontent.com/abc/def',
+  );
   assert.notEqual(assetKey('https://x.test/a.png'), assetKey('https://x.test/b.png'));
 });
 

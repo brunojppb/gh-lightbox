@@ -4,7 +4,7 @@ This file holds the text for the Chrome Web Store dashboard. Copy each part into
 
 ## Store listing tab
 
-**Name** comes from `extension/manifest.json`: Lightbox for GitHub.
+**Name** comes from `public/manifest.json`: Lightbox for GitHub.
 
 **Summary** comes from the manifest `description` (132 characters maximum).
 
@@ -30,7 +30,7 @@ The extension runs only on github.com. It collects no data, sends nothing to any
 Open source: https://github.com/brunojppb/gh-lightbox
 ```
 
-**Icon:** `extension/icons/icon-128.png`.
+**Icon:** `public/icons/icon-128.png`.
 
 **Screenshots** (1280x800): `store/screenshots/*.png`, in file name order.
 
@@ -40,7 +40,7 @@ Open source: https://github.com/brunojppb/gh-lightbox
 
 **Support URL:** https://github.com/brunojppb/gh-lightbox/issues
 
-`npm run store:assets` builds the screenshots, the promo tile, and the README banner again. It needs network, because it captures the showcase comment on the demo pull request. `store/CREDITS.md` lists the source and author of each photo and video in that comment.
+`pnpm store:assets` builds the screenshots, the promo tile, and the README banner again. It needs network, because it captures the showcase comment on the demo pull request. `store/CREDITS.md` lists the source and author of each photo and video in that comment.
 
 ## Privacy tab
 
@@ -68,4 +68,4 @@ The content script runs on github.com to find the images and videos in issue and
 
 ## Package
 
-`npm run package` builds `dist/gh-lightbox-v<version>.zip`. Each GitHub release has the same zip. Upload that file. The store needs a higher version for each upload, and Changesets raises the version.
+`pnpm package` builds `dist/gh-lightbox-v<version>.zip`. Each GitHub release has the same zip. Upload that file. The store needs a higher version for each upload, and Changesets raises the version.

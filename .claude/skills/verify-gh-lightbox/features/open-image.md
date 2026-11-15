@@ -20,7 +20,7 @@ A plain left click on an image in an issue or pull request body or comment opens
 - **Open.** Click `.markdown-body img[alt="Bars"]`. Wait for `gh-lightbox[data-phase="open"]`. `context.pages().length` is unchanged.
 - **Content.** `.counter` reads `n / total` and `.caption` reads `Bars`.
 - **Close.** Press Escape. Wait for `gh-lightbox[data-phase="closed"]`. The page image has computed opacity `1` and no animations.
-- **Proof.** `npm run verify:live` saves `*-01-page.png`, `*-02-opening.png`, `*-03-open.png`, and `*-06-closing.png`.
+- **Proof.** `pnpm verify:live` saves `*-01-page.png`, `*-02-opening.png`, `*-03-open.png`, and `*-06-closing.png`.
 - e2e: the tests named "a click opens the lightbox", "the open morph starts at the page image rect", "Escape closes", "the X button and the backdrop close it", and "reduced motion".
 
 ## Gotchas

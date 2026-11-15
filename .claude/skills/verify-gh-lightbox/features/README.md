@@ -4,7 +4,7 @@ This directory lists the user-facing behavior of gh-lightbox. Read it before you
 
 ## Baseline preconditions
 
-- `npm install` has run, and `npm run check`, `npm test`, and `npm run -s verify:lifecycle` pass.
+- `pnpm install` has run, and `pnpm check`, `pnpm test`, and `pnpm verify:lifecycle` pass.
 - For fixture runs: no network is needed.
 - For live runs: https://github.com/brunojppb/gh-lightbox/issues/1 and https://github.com/brunojppb/gh-lightbox/pull/2 exist and are public.
 

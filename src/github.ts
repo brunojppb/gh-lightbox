@@ -1,9 +1,6 @@
-// @ts-check
 // Every fact about GitHub's markup and URLs lives in this file.
 // The rest of the extension sees only MediaItem and Gallery.
-
-/** @typedef {import('./types.js').MediaItem} MediaItem */
-/** @typedef {import('./types.js').Gallery} Gallery */
+import type { MediaItem, Gallery } from './types.ts';
 
 const REVIEW_PAGE = /^\/[^/]+\/[^/]+\/(?:issues|pull)\/\d+(?:\/|$)/;
 const COMMENT = '.markdown-body';
@@ -17,10 +14,8 @@ const NAMED_FILE = /\.[a-z0-9]{2,5}$/i;
 
 /**
  * Returns true for an issue page, a pull request page, and the subpages of a pull request.
- * @param {string} pathname
- * @returns {boolean}
  */
-export function isReviewPage(pathname) {
+export function isReviewPage(pathname: string): boolean {
   return REVIEW_PAGE.test(pathname);
 }
 
@@ -28,10 +23,9 @@ export function isReviewPage(pathname) {
  * Returns the gallery for the media at `target`: every review image and video in the same comment,
  * in page order, starting at the one at `target`.
  * Returns null when `target` is not review media on an issue or pull request page.
- * @param {Element} target  An img, a video, the link around an image, or an img inside animated-image.
- * @returns {Gallery | null}
+ * @param target An img, a video, the link around an image, or an img inside animated-image.
  */
-export function galleryFor(target) {
+export function galleryFor(target: Element): Gallery | null {
   if (!isReviewPage(location.pathname)) return null;
   const picked = pageElementAt(target);
   if (!picked || !isReviewMedia(picked)) return null;
@@ -48,10 +42,8 @@ export function galleryFor(target) {
 /**
  * Returns the caption for a media item: meaningful alt text, then the file label GitHub prints
  * above a video, then the file name in the URL. Empty when none applies.
- * @param {{ alt: string, label: string, url: string }} parts
- * @returns {string}
  */
-export function captionFor({ alt, label, url }) {
+export function captionFor({ alt, label, url }: { alt: string; label: string; url: string }): string {
   const text = alt.trim();
   if (!GENERIC_ALT.test(text)) return text;
   if (label.trim()) return label.trim();
@@ -61,19 +53,12 @@ export function captionFor({ alt, label, url }) {
 /**
  * Returns the string that names an uploaded asset across GitHub re-renders: the asset UUID in the path,
  * else the URL without its query and hash. Signed URLs change on every render, so the URL alone is no key.
- * @param {string} url
- * @returns {string}
  */
-export function assetKey(url) {
+export function assetKey(url: string): string {
   const bare = url.split(/[?#]/)[0] ?? '';
   return bare.match(UUID)?.[0].toLowerCase() ?? bare;
 }
-
-/**
- * @param {string} url
- * @returns {string}
- */
-function fileNameIn(url) {
+function fileNameIn(url: string): string {
   try {
     const last = decodeURIComponent(new URL(url).pathname.split('/').pop() ?? '');
     // Upload URLs end in a UUID or an id-UUID pair. That is not a name a person chose.
@@ -86,10 +71,8 @@ function fileNameIn(url) {
 /**
  * Returns the page element that stands for the media at `target`, or null.
  * An image link, an image, and an image inside animated-image all stand for one element.
- * @param {Element} target
- * @returns {Element | null}
  */
-function pageElementAt(target) {
+function pageElementAt(target: Element): Element | null {
   // Enter on a focused image link fires the click on the link, not on the image.
   if (target instanceof HTMLAnchorElement) {
     const images = target.querySelectorAll('img');
@@ -103,24 +86,21 @@ function pageElementAt(target) {
 
 /**
  * Returns the img inside animated-image, or `el` itself.
- * @param {Element} el
- * @returns {Element}
  */
-function mediaOf(el) {
+function mediaOf(el: Element): Element {
   return el.localName === 'animated-image' ? (el.querySelector('img') ?? el) : el;
 }
 
 /**
  * Returns true for media a reviewer wants to see large. Clicks and gallery collection share this rule.
- * @param {Element} el  A page element from pageElementAt.
- * @returns {boolean}
+ * @param el A page element from pageElementAt.
  */
-function isReviewMedia(el) {
+function isReviewMedia(el: Element): boolean {
   const media = mediaOf(el);
   const comment = el.closest(COMMENT);
   if (!comment || el.closest('form, .js-preview-body')) return false;
   // Ancestors count only inside the comment. Containers around it can carry any class.
-  const inside = (/** @type {string} */ selector) => {
+  const inside = (selector: string) => {
     const hit = media.closest(selector);
     return hit !== null && hit !== comment && comment.contains(hit);
   };
@@ -138,10 +118,8 @@ function isReviewMedia(el) {
 
 /**
  * Returns true when a closed <details> is the reason `el` has no box. Its media stays in the gallery.
- * @param {Element} el
- * @returns {boolean}
  */
-function inClosedDetails(el) {
+function inClosedDetails(el: Element): boolean {
   for (let box = el.closest('details'); box; box = box.parentElement?.closest('details') ?? null) {
     if (!box.open) return true;
   }
@@ -151,11 +129,8 @@ function inClosedDetails(el) {
 /**
  * Returns true when `link` is the wrapper GitHub puts around an uploaded or proxied image:
  * it points at the same asset as the image. A link to another asset is the author's.
- * @param {HTMLAnchorElement} link
- * @param {Element} media
- * @returns {boolean}
  */
-function isUploadLink(link, media) {
+function isUploadLink(link: HTMLAnchorElement, media: Element): boolean {
   const sources = [media.getAttribute('src'), media.getAttribute('data-canonical-src')];
   return sources.some((source) => {
     if (!source) return false;
@@ -166,10 +141,9 @@ function isUploadLink(link, media) {
 
 /**
  * Returns the MediaItem for a page element.
- * @param {Element} el  A page element that passed isReviewMedia.
- * @returns {MediaItem}
+ * @param el A page element that passed isReviewMedia.
  */
-function toItem(el) {
+function toItem(el: Element): MediaItem {
   const media = mediaOf(el);
   const locate = locator(el);
   if (media instanceof HTMLVideoElement) {
@@ -178,7 +152,7 @@ function toItem(el) {
     const size = media.videoWidth > 0 ? { width: media.videoWidth, height: media.videoHeight } : null;
     return { kind: 'video', src, caption: captionFor({ alt: '', label, url: src }), size, locate };
   }
-  const image = /** @type {HTMLImageElement} */ (media);
+  const image = media as HTMLImageElement;
   const src = image.currentSrc || image.src;
   const size = image.naturalWidth > 0 ? { width: image.naturalWidth, height: image.naturalHeight } : null;
   return { kind: 'image', src, caption: captionFor({ alt: image.alt, label: '', url: src }), size, locate };
@@ -186,10 +160,8 @@ function toItem(el) {
 
 /**
  * Returns a function that finds the page element for `el` at call time.
- * @param {Element} el
- * @returns {() => Element | null}
  */
-function locator(el) {
+function locator(el: Element): () => Element | null {
   const key = keyOf(el);
   return () => {
     if (el.isConnected) return el;
@@ -203,10 +175,8 @@ function locator(el) {
 
 /**
  * Returns the key that names a page element across GitHub re-renders.
- * @param {Element} el
- * @returns {string}
  */
-function keyOf(el) {
+function keyOf(el: Element): string {
   const media = mediaOf(el);
   const urls = [media.getAttribute('data-canonical-src'), media.getAttribute('src')].filter((url) => url !== null);
   const withUuid = urls.find((url) => UUID.test(url.split(/[?#]/)[0] ?? ''));

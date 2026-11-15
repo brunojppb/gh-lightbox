@@ -1,25 +1,32 @@
 {
   "name": "gh-lightbox",
   "version": "0.1.1",
+  "license": "MIT",
   "type": "module",
   "scripts": {
-    "check": "tsc --noEmit -p .",
-    "test": "node --test \"test/unit/*.test.js\"",
-    "e2e": "playwright test test/e2e",
-    "verify:live": "node scripts/verify-live.mjs",
-    "verify:lifecycle": "node scripts/check-lifecycle.mjs",
+    "build": "vp build",
+    "check": "vp check",
+    "check:fix": "vp check --fix",
+    "test": "vp test run",
+    "e2e": "vp build && playwright test test/e2e",
+    "verify:live": "vp build && node scripts/verify-live.ts",
+    "verify:lifecycle": "node scripts/check-lifecycle.ts",
+    "package": "vp build && node scripts/package.ts",
+    "store:assets": "vp build && node scripts/store-assets.ts",
     "changeset": "changeset",
-    "version-packages": "changeset version && node scripts/sync-manifest-version.mjs",
-    "release": "changeset git-tag",
-    "store:assets": "node scripts/store-assets.mjs",
-    "package": "node scripts/package.mjs"
+    "version-packages": "changeset version && node scripts/sync-manifest-version.ts",
+    "release": "changeset git-tag"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^1.0.1",
-    "@changesets/cli": "^3.0.3",
-    "@playwright/test": "~1.57.0",
-    "@types/node": "^24.0.0",
-    "typescript": "^5.9.0"
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.3",
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vite-plus": "1.6.0"
   },
-  "license": "MIT"
+  "engines": {
+    "node": ">=26"
+  },
+  "packageManager": "pnpm@12.21.0"
 }

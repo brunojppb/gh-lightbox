@@ -21,36 +21,36 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      # Installs the Node and pnpm versions that mise.toml pins.
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          node-version: 24
-          cache: npm
+          version: 2026.11.8
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - name: Type check
-        run: npm run check
+      - name: Format, lint, and type check
+        run: pnpm check
 
       - name: Unit tests
-        run: npm test
+        run: pnpm test
 
       - name: Lifecycle model check
-        run: npm run -s verify:lifecycle
+        run: pnpm verify:lifecycle
 
       # Chrome reads the version from the manifest, so it must match package.json.
       - name: Manifest version matches package.json
-        run: node scripts/sync-manifest-version.mjs && git diff --exit-code extension/manifest.json
+        run: node scripts/sync-manifest-version.ts && git diff --exit-code public/manifest.json
 
       # The same zip goes to the Chrome Web Store, so its contents are checked here.
-      - name: Package the extension
-        run: npm run -s package
+      - name: Build and package the extension
+        run: pnpm package
 
-      # The live check (npm run verify:live) is left out: it depends on public GitHub pages and signed media URLs.
+      # The live check (pnpm verify:live) is left out: it depends on public GitHub pages and signed media URLs.
       - name: Install Chromium for Playwright
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
-      - name: End-to-end tests with the unpacked extension
-        run: npm run e2e
+      - name: End-to-end tests with the built extension
+        run: pnpm e2e
 
       - name: Upload Playwright traces
         if: failure()
