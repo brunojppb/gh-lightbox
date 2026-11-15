@@ -1,5 +1,7 @@
 # gh-lightbox
 
+![gh-lightbox: see GitHub images and videos up close, without leaving the page](docs/assets/banner.png)
+
 A Chrome extension. It opens images and videos from GitHub issues and pull requests in a full-screen lightbox on the same page.
 
 ## Install
