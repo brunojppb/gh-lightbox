@@ -1,5 +1,15 @@
 # gh-lightbox
 
+## 0.2.0
+
+### Minor Changes
+
+- [#10](https://github.com/brunojppb/gh-lightbox/pull/10) [`3df69b8`](https://github.com/brunojppb/gh-lightbox/commit/3df69b89ce40ad0f6402540e660d03263ebad532) Thanks [@brunojppb](https://github.com/brunojppb)! - Rename the extension to Lightbox for GitHub and add a homepage link, ready for the Chrome Web Store.
+
+### Patch Changes
+
+- [#12](https://github.com/brunojppb/gh-lightbox/pull/12) [`22ade89`](https://github.com/brunojppb/gh-lightbox/commit/22ade895d109ab288b2e5492a855b8dee01b9a13) Thanks [@brunojppb](https://github.com/brunojppb)! - Bundle the extension into one content script, so pages on github.com can no longer load its files to detect it.
+
 ## 0.1.1
 
 ### Patch Changes
