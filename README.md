@@ -72,6 +72,8 @@ Add a changeset to each pull request that changes the extension: run `pnpm chang
 
 `store/listing.md` holds the Chrome Web Store listing text and the answers for the privacy tab.
 
+After the release, the "Publish to Chrome Web Store" workflow uploads the same zip to the store and submits it for review. `docs/chrome-web-store.md` explains the one-time setup and what to do when a publish fails.
+
 `docs/design.md` explains the design. `test/e2e/make-fixtures.sh` rebuilds the test media with ffmpeg.
 
 ## License

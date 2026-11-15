@@ -14,6 +14,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      version: ${{ steps.attach.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -33,6 +36,7 @@ jobs:
           commit-message: 'chore: version packages'
           pr-title: 'chore: version packages'
       - name: Attach the extension zip to the release
+        id: attach
         if: steps.changesets.outputs.published == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,3 +48,14 @@ jobs:
           zip_file=$(node scripts/package.ts)
           [[ "$zip_file" == */gh-lightbox-v$version.zip ]] || { echo "built $zip_file, expected v$version"; exit 1; }
           gh release upload "v$version" "$zip_file" --clobber
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  chrome-web-store:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-store.yml
+    with:
+      version: ${{ needs.release.outputs.version }}

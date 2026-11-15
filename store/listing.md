@@ -68,4 +68,4 @@ The content script runs on github.com to find the images and videos in issue and
 
 ## Package
 
-`pnpm package` builds `dist/gh-lightbox-v<version>.zip`. Each GitHub release has the same zip. Upload that file. The store needs a higher version for each upload, and Changesets raises the version.
+`pnpm package` builds `dist/gh-lightbox-v<version>.zip`. Each GitHub release has the same zip. The first version went up by hand. After that, the "Publish to Chrome Web Store" workflow uploads each release and submits it for review. See `docs/chrome-web-store.md`. The store needs a higher version for each upload, and Changesets raises the version.
