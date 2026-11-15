@@ -1,8 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "gh-lightbox",
+  "name": "Lightbox for GitHub",
+  "short_name": "gh-lightbox",
   "version": "0.1.1",
   "description": "Opens images and videos from GitHub issues and pull requests in a lightbox on the same page.",
+  "homepage_url": "https://github.com/brunojppb/gh-lightbox",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",

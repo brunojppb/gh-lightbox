@@ -41,6 +41,6 @@ jobs:
           PUBLISHED: ${{ steps.changesets.outputs.published-packages }}
         run: |
           version=$(jq -r '.[0].version' <<<"$PUBLISHED")
-          zip_file="$RUNNER_TEMP/gh-lightbox-v$version.zip"
-          (cd extension && zip -r "$zip_file" .)
+          zip_file=$(npm run -s package)
+          [[ "$zip_file" == */gh-lightbox-v$version.zip ]] || { echo "built $zip_file, expected v$version"; exit 1; }
           gh release upload "v$version" "$zip_file" --clobber

@@ -33,7 +33,7 @@
 
   <!-- Text column. -->
   <image x="80" y="150" width="96" height="96" xlink:href="icon.svg"/>
-  <text x="80" y="320" fill="#ffffff" font-size="68" font-weight="700" letter-spacing="-1.5">gh-lightbox</text>
+  <text x="80" y="320" fill="#ffffff" font-size="50" font-weight="700" letter-spacing="-1">Lightbox for GitHub</text>
   <text x="80" y="372" fill="#d9d3ff" font-size="26">See GitHub images and videos</text>
   <text x="80" y="406" fill="#d9d3ff" font-size="26">up close, without leaving the page.</text>
   <g font-size="19" fill="#b3a9f0">
