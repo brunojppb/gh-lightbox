@@ -313,17 +313,19 @@ function buildView(root) {
   // The frame takes focus on open. On the close button, Space would close the lightbox.
   const frame = el('div', 'frame', { tabindex: '-1', autofocus: '' });
   frame.append(image, video);
-  const stage = el('div', 'stage');
-  stage.append(frame);
-
   const prevButton = el('button', 'prev', { 'aria-label': 'Previous' });
   prevButton.textContent = '\u2039';
   const nextButton = el('button', 'next', { 'aria-label': 'Next' });
   nextButton.textContent = '\u203a';
+  // The viewer takes the frame's size, so the buttons sit beside the media.
+  const viewer = el('div', 'viewer');
+  viewer.append(prevButton, frame, nextButton);
+  const stage = el('div', 'stage');
+  stage.append(viewer);
   const caption = el('p', 'caption', { 'aria-live': 'polite' });
   const strip = el('ol', 'strip');
   const footer = el('footer');
-  footer.append(prevButton, caption, nextButton, strip);
+  footer.append(caption, strip);
 
   dialog.append(backdrop, header, stage, footer);
   root.append(dialog);
@@ -334,7 +336,7 @@ function buildView(root) {
 
   return {
     dialog, backdrop, frame, image, video, counter, caption, closeButton, prevButton, nextButton, strip,
-    parts: { frame, backdrop, controls: [header, footer] },
+    parts: { frame, backdrop, controls: [header, prevButton, nextButton, footer] },
   };
 }
 
