@@ -1,6 +1,6 @@
 // @ts-check
 // Builds the Chrome Web Store images: the promo tile and README banner from SVG,
-// and screenshots of the unpacked extension on the public test issue and pull request.
+// and screenshots of the unpacked extension on the showcase comment of the demo pull request.
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
@@ -14,8 +14,10 @@ const SVGS = [
   { from: 'store/promo-tile.svg', to: 'store/promo-tile.png', size: { width: 440, height: 280 } },
   { from: 'docs/assets/banner.svg', to: 'docs/assets/banner.png', size: { width: 1280, height: 640 } },
 ];
-const ISSUE = 'https://github.com/brunojppb/gh-lightbox/issues/1';
-const PULL = 'https://github.com/brunojppb/gh-lightbox/pull/2';
+// The demo pull request has a showcase comment with CC0 photos and video, and it credits each author.
+// The URL has no #issuecomment anchor, because GitHub draws a focus outline on the anchored comment.
+const SHOWCASE = 'https://github.com/brunojppb/gh-lightbox/pull/2';
+const FIRST_PHOTO = 'img[alt="Northern lights over Lofoten"]';
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -55,10 +57,12 @@ async function captureScreens(context) {
   const page = await context.newPage();
   const host = page.locator('gh-lightbox');
 
-  await visit(page, ISSUE);
-  const bars = page.locator('.markdown-body img[alt="Bars"]').first();
-  await bars.scrollIntoViewIfNeeded();
-  await bars.click();
+  await visit(page, SHOWCASE);
+  // The lightbox makes one gallery from each comment, so the showcase gallery holds only its own media.
+  const comment = page.locator('.markdown-body').filter({ has: page.locator(FIRST_PHOTO) }).last();
+  const photo = comment.locator(FIRST_PHOTO);
+  await photo.scrollIntoViewIfNeeded();
+  await photo.click();
   await waitPhase(page, 'open');
   await page.waitForTimeout(500);
   await shot(page, '1-image');
@@ -69,9 +73,8 @@ async function captureScreens(context) {
   await page.keyboard.press('Escape');
   await waitPhase(page, 'closed');
 
-  await visit(page, PULL);
-  const video = page.locator('.markdown-body details video').first();
-  await video.scrollIntoViewIfNeeded();
+  const video = comment.locator('video').first();
+  await video.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   await page.waitForTimeout(400);
   await video.hover();
   await host.locator('.launcher').waitFor({ state: 'visible', timeout: 3000 });

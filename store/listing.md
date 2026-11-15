@@ -40,7 +40,7 @@ Open source: https://github.com/brunojppb/gh-lightbox
 
 **Support URL:** https://github.com/brunojppb/gh-lightbox/issues
 
-`npm run store:assets` builds the screenshots, the promo tile, and the README banner again. It needs network, because it captures the public test issue and pull request.
+`npm run store:assets` builds the screenshots, the promo tile, and the README banner again. It needs network, because it captures the showcase comment on the demo pull request. `store/CREDITS.md` lists the source and author of each photo and video in that comment.
 
 ## Privacy tab
 
