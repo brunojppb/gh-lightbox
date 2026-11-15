@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6d5dfc"/>
+      <stop offset="1" stop-color="#1f1147"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd27a"/>
+      <stop offset="1" stop-color="#ff7ab6"/>
+    </linearGradient>
+    <clipPath id="photo"><rect x="34" y="40" width="60" height="46" rx="7"/></clipPath>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <circle cx="64" cy="62" r="52" fill="url(#glow)"/>
+  <!-- The photo in the lightbox. -->
+  <g clip-path="url(#photo)">
+    <rect x="34" y="40" width="60" height="46" fill="url(#sky)"/>
+    <circle cx="80" cy="52" r="6" fill="#fff8e6"/>
+    <path d="M34 86 L54 62 L66 74 L74 66 L94 86 Z" fill="#2a1a63"/>
+  </g>
+  <rect x="34" y="40" width="60" height="46" rx="7" fill="none" stroke="#fff" stroke-width="4"/>
+  <!-- Expand corners. -->
+  <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 38 V24 H34"/>
+    <path d="M94 24 H108 V38"/>
+    <path d="M108 90 V104 H94"/>
+    <path d="M34 104 H20 V90"/>
+  </g>
+  <!-- Thumbnail dots. -->
+  <g fill="#fff">
+    <rect x="50" y="94" width="8" height="5" rx="2.5"/>
+    <rect x="60" y="94" width="8" height="5" rx="2.5" opacity="0.5"/>
+    <rect x="70" y="94" width="8" height="5" rx="2.5" opacity="0.5"/>
+  </g>
+</svg>
