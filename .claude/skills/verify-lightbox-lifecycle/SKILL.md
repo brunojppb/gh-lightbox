@@ -37,7 +37,7 @@ It takes under a second. A pass prints `PASS: 116 states and 2224 transitions fo
 
 ## It can fail
 
-These broken variants of `state.ts` each fail the check. Each was run on commit `0275731`.
+These broken variants of `state.ts` each fail the check. Each was run on commit `8198921`, after the move to TypeScript.
 
 | Broken variant | Property that catches it |
 | --- | --- |
@@ -54,4 +54,4 @@ To repeat one: edit the line in `src/state.ts`, run the check, see `FAIL`, then 
 - Files: `src/state.ts` (`reduce`, `clampIndex`, `CLOSED`), `src/types.ts` (`Gallery`).
 - Not covered: `keyCommand` (unit tests cover it), the effect runner in `src/lightbox.ts`, the DOM, and real animation timing. The e2e tests and the `verify-gh-lightbox` skill cover those.
 - Bound: galleries of 1 to 8 items. `reduce` treats every index the same, so a bug that needs more than 8 items is unlikely, but this check does not prove its absence.
-- Sync commit: `0275731`. When `state.ts` changes after this commit, read the diff, confirm the properties still describe it, run the check, then move this commit forward.
+- Sync commit: `8198921`. When `state.ts` changes after this commit, read the diff, confirm the properties still describe it, run the check, then move this commit forward.
