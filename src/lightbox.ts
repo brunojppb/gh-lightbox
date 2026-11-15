@@ -1,53 +1,45 @@
-// @ts-check
-import { reduce, keyCommand, CLOSED } from './state.js';
-import { morph, slide, veil, unveilAll, cancelAnimations } from './morph.js';
+import { reduce, keyCommand, CLOSED } from './state.ts';
+import { morph, slide, veil, unveilAll, cancelAnimations } from './morph.ts';
 
-/** @typedef {import('./types.js').Gallery} Gallery */
-/** @typedef {import('./types.js').MediaItem} MediaItem */
-/** @typedef {import('./state.js').LightboxState} LightboxState */
-/** @typedef {import('./state.js').LightboxEvent} LightboxEvent */
-/** @typedef {import('./state.js').Effect} Effect */
-/** @typedef {import('./morph.js').MorphParts} MorphParts */
-/** @typedef {(event: LightboxEvent) => void} Dispatch */
+import type { Gallery, MediaItem } from './types.ts';
+import type { LightboxState, LightboxEvent, Effect } from './state.ts';
+import type { MorphParts } from './morph.ts';
 
-/**
- * @typedef {object} Lightbox
- * @property {(gallery: Gallery) => void} open  Opens the lightbox on `gallery.start`. Does nothing unless the lightbox is closed.
- */
+type Dispatch = (event: LightboxEvent) => void;
 
-/**
- * The lightbox DOM. `buildView` makes it once. Effects fill it.
- * @typedef {object} View
- * @property {HTMLDialogElement} dialog
- * @property {HTMLElement} backdrop
- * @property {HTMLElement} frame
- * @property {HTMLImageElement} image
- * @property {HTMLVideoElement} video
- * @property {HTMLElement} counter
- * @property {HTMLElement} caption
- * @property {HTMLButtonElement} closeButton
- * @property {HTMLButtonElement} prevButton
- * @property {HTMLButtonElement} nextButton
- * @property {HTMLOListElement} strip
- * @property {MorphParts} parts
- */
+export interface Lightbox {
+  /** Opens the lightbox on `gallery.start`. Does nothing unless the lightbox is closed. */
+  open: (gallery: Gallery) => void;
+}
+
+/** The lightbox DOM. `buildView` makes it once. Effects fill it. */
+interface View {
+  dialog: HTMLDialogElement;
+  backdrop: HTMLElement;
+  frame: HTMLElement;
+  image: HTMLImageElement;
+  video: HTMLVideoElement;
+  counter: HTMLElement;
+  caption: HTMLElement;
+  closeButton: HTMLButtonElement;
+  prevButton: HTMLButtonElement;
+  nextButton: HTMLButtonElement;
+  strip: HTMLOListElement;
+  parts: MorphParts;
+}
 
 const PAGE_SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
 
 /**
  * Builds the lightbox inside `root`. The lightbox handles its own keys, buttons, wheel, and page changes.
- * @param {ShadowRoot} root
- * @returns {Lightbox}
  */
-export function createLightbox(root) {
-  const host = /** @type {HTMLElement} */ (root.host);
+export function createLightbox(root: ShadowRoot): Lightbox {
+  const host = root.host as HTMLElement;
   const view = buildView(root);
-  /** @type {LightboxState} */
-  let state = CLOSED;
+  let state: LightboxState = CLOSED;
   host.dataset.phase = state.phase;
 
-  /** @type {Dispatch} */
-  const dispatch = (event) => {
+  const dispatch: Dispatch = (event) => {
     const next = reduce(state, event);
     state = next.state;
     // The only writer of data-phase. CSS and the e2e tests read it.
@@ -69,12 +61,8 @@ export function createLightbox(root) {
 
 /**
  * Runs one effect against the view.
- * @param {View} view
- * @param {Effect} effect
- * @param {Dispatch} dispatch
- * @returns {void}
  */
-function run(view, effect, dispatch) {
+function run(view: View, effect: Effect, dispatch: Dispatch): void {
   switch (effect.type) {
     case 'mount':
       fillStrip(view, effect.gallery);
@@ -100,11 +88,8 @@ function run(view, effect, dispatch) {
 
 /**
  * Shows an item in the frame, and updates the counter, caption, buttons, and strip.
- * @param {View} view
- * @param {Extract<Effect, { type: 'render' }>} effect
- * @returns {void}
  */
-function renderItem(view, effect) {
+function renderItem(view: View, effect: Extract<Effect, { type: 'render' }>): void {
   const { item, previous, index, count, direction } = effect;
   if (previous?.kind === 'video') handBack(previous, view.video);
   setFrameSize(view.frame, item.kind, item.size);
@@ -120,11 +105,11 @@ function renderItem(view, effect) {
   view.counter.hidden = count === 1;
   view.caption.textContent = item.caption;
   view.caption.hidden = item.caption === '';
-  const focused = /** @type {ShadowRoot} */ (view.dialog.getRootNode()).activeElement;
+  const focused = (view.dialog.getRootNode() as ShadowRoot).activeElement;
   view.prevButton.disabled = index === 0;
   view.nextButton.disabled = index === count - 1;
   // A disabled button drops focus to the inert body, and Space then scrolls the page.
-  if ((focused === view.prevButton || focused === view.nextButton) && /** @type {HTMLButtonElement} */ (focused).disabled) {
+  if ((focused === view.prevButton || focused === view.nextButton) && (focused as HTMLButtonElement).disabled) {
     view.frame.focus();
   }
   for (const button of view.strip.querySelectorAll('button')) {
@@ -138,12 +123,8 @@ function renderItem(view, effect) {
 /**
  * Sets the frame's aspect ratio from the media's natural size, or 16:9 while the size is unknown.
  * An image never grows past its natural width.
- * @param {HTMLElement} frame
- * @param {MediaItem['kind']} kind
- * @param {MediaItem['size']} size
- * @returns {void}
  */
-function setFrameSize(frame, kind, size) {
+function setFrameSize(frame: HTMLElement, kind: MediaItem['kind'], size: MediaItem['size']): void {
   const { style } = frame;
   style.setProperty('--w', String(size?.width ?? 16));
   style.setProperty('--h', String(size?.height ?? 9));
@@ -153,11 +134,8 @@ function setFrameSize(frame, kind, size) {
 
 /**
  * Scrolls the strip, and nothing else, so the button at `index` sits in its middle.
- * @param {HTMLElement} strip
- * @param {number} index
- * @returns {void}
  */
-function centerInStrip(strip, index) {
+function centerInStrip(strip: HTMLElement, index: number): void {
   const button = strip.querySelectorAll('button')[index];
   if (!button) return;
   const [a, b] = [button.getBoundingClientRect(), strip.getBoundingClientRect()];
@@ -167,11 +145,8 @@ function centerInStrip(strip, index) {
 /**
  * Moves playback from the page video to the lightbox video: same time, volume, and mute.
  * The page video pauses, so the sound never plays twice.
- * @param {MediaItem} item
- * @param {HTMLVideoElement} stage
- * @returns {void}
  */
-function handOver(item, stage) {
+function handOver(item: MediaItem, stage: HTMLVideoElement): void {
   const page = item.locate();
   stage.src = item.src;
   if (page instanceof HTMLVideoElement) {
@@ -186,11 +161,8 @@ function handOver(item, stage) {
 
 /**
  * Moves the lightbox video's time back to the page video, and stops the lightbox video.
- * @param {MediaItem} item
- * @param {HTMLVideoElement} stage
- * @returns {void}
  */
-function handBack(item, stage) {
+function handBack(item: MediaItem, stage: HTMLVideoElement): void {
   const page = item.locate();
   if (page instanceof HTMLVideoElement) page.currentTime = stage.currentTime;
   stage.pause();
@@ -201,11 +173,8 @@ function handBack(item, stage) {
 
 /**
  * Fills the thumbnail strip with one button for each item.
- * @param {View} view
- * @param {Gallery} gallery
- * @returns {void}
  */
-function fillStrip(view, gallery) {
+function fillStrip(view: View, gallery: Gallery): void {
   const { items } = gallery;
   const buttons = items.map((item, i) => {
     const button = el('button', '', { 'data-index': String(i), 'aria-label': `Item ${i + 1} of ${items.length}` });
@@ -226,15 +195,11 @@ function fillStrip(view, gallery) {
 
 /**
  * Connects keys, buttons, wheel, and page changes to `dispatch`.
- * @param {View} view
- * @param {() => LightboxState['phase']} phase
- * @param {Dispatch} dispatch
- * @returns {void}
  */
-function listen(view, phase, dispatch) {
+function listen(view: View, phase: () => LightboxState['phase'], dispatch: Dispatch): void {
   const { dialog } = view;
   // Window capture runs before GitHub's shortcut listeners on document.
-  const onKey = (/** @type {KeyboardEvent} */ event) => {
+  const onKey = (event: KeyboardEvent) => {
     if (phase() === 'closed') return;
     const command = keyCommand(event);
     const path = event.composedPath();
@@ -252,8 +217,8 @@ function listen(view, phase, dispatch) {
     event.preventDefault();
     dispatch(command);
   };
-  for (const type of ['keydown', 'keyup', 'keypress']) {
-    window.addEventListener(type, /** @type {EventListener} */ (onKey), true);
+  for (const type of ['keydown', 'keyup', 'keypress'] as const) {
+    window.addEventListener(type, onKey, true);
     dialog.addEventListener(type, (event) => event.stopPropagation());
   }
 
@@ -295,10 +260,8 @@ function listen(view, phase, dispatch) {
 
 /**
  * Builds the lightbox DOM inside `root`.
- * @param {ShadowRoot} root
- * @returns {View}
  */
-function buildView(root) {
+function buildView(root: ShadowRoot): View {
   const dialog = el('dialog', '', { 'aria-label': 'Media viewer' });
   const backdrop = el('div', 'backdrop');
   const counter = el('span', 'counter', { 'aria-live': 'polite' });
@@ -331,24 +294,35 @@ function buildView(root) {
   root.append(dialog);
 
   // The natural size can arrive after the open, when the page had not loaded the media.
-  image.addEventListener('load', () => setFrameSize(frame, 'image', { width: image.naturalWidth, height: image.naturalHeight }));
-  video.addEventListener('loadedmetadata', () => setFrameSize(frame, 'video', { width: video.videoWidth, height: video.videoHeight }));
+  image.addEventListener('load', () =>
+    setFrameSize(frame, 'image', { width: image.naturalWidth, height: image.naturalHeight }),
+  );
+  video.addEventListener('loadedmetadata', () =>
+    setFrameSize(frame, 'video', { width: video.videoWidth, height: video.videoHeight }),
+  );
 
   return {
-    dialog, backdrop, frame, image, video, counter, caption, closeButton, prevButton, nextButton, strip,
+    dialog,
+    backdrop,
+    frame,
+    image,
+    video,
+    counter,
+    caption,
+    closeButton,
+    prevButton,
+    nextButton,
+    strip,
     parts: { frame, backdrop, controls: [header, prevButton, nextButton, footer] },
   };
 }
 
-/**
- * Makes an element, with attributes.
- * @template {keyof HTMLElementTagNameMap} K
- * @param {K} tag
- * @param {string} [className]
- * @param {Record<string, string>} [attributes]
- * @returns {HTMLElementTagNameMap[K]}
- */
-function el(tag, className = '', attributes = {}) {
+/** Makes an element, with attributes. */
+function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className = '',
+  attributes: Record<string, string> = {},
+): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag);
   if (className) element.className = className;
   for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
@@ -357,11 +331,9 @@ function el(tag, className = '', attributes = {}) {
 
 /**
  * Closes the lightbox at once and returns the page to how it was. Each step runs even if an earlier one fails.
- * @param {View} view
- * @param {MediaItem | null} item  The item on show, or null when it is unknown after a failure.
- * @returns {void}
+ * @param item The item on show, or null when it is unknown after a failure.
  */
-function teardown(view, item) {
+function teardown(view: View, item: MediaItem | null): void {
   const steps = [
     () => cancelAnimations(view.parts),
     () => (item?.kind === 'video' ? handBack(item, view.video) : view.video.pause()),

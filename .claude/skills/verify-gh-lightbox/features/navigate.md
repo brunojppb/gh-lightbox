@@ -18,7 +18,7 @@ The lightbox shows the media of the clicked comment only: the issue or PR body, 
 - **Keys.** Open on `Bars`. Press ArrowRight. `.caption` reads `Test source`.
 - **Strip.** Click the last `.strip button`. `.counter` reads `total / total`, and `.next` is disabled.
 - **Scope.** Open on `.markdown-body img[alt="Comment image"]`. `.counter` and `.strip` are hidden, because the comment holds one image.
-- **Proof.** `*-04-next.png`, `*-05-last.png`, and `*-09-comment.png` from `npm run verify:live`.
+- **Proof.** `*-04-next.png`, `*-05-last.png`, and `*-09-comment.png` from `pnpm verify:live`.
 
 ## Gotchas
 

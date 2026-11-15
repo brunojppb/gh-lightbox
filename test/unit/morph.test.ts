@@ -1,8 +1,7 @@
-// @ts-check
-// morph.js touches the DOM only inside functions, so node can import it for the pure helpers.
-import { test } from 'node:test';
+// morph.ts touches the DOM only inside functions, so the tests can import it for the pure helpers.
+import { test } from 'vite-plus/test';
 import assert from 'node:assert/strict';
-import { transformBetween, visibleRect, isOnScreen, sameAspect, springEasing } from '../../extension/src/morph.js';
+import { transformBetween, visibleRect, isOnScreen, sameAspect, springEasing } from '../../src/morph.ts';
 
 test('transformBetween maps a rect onto itself with no change', () => {
   const r = { x: 10, y: 20, width: 300, height: 200 };
@@ -17,7 +16,12 @@ test('transformBetween translates and scales from the layout rect to the target'
 
 test('visibleRect letterboxes a wide video in a tall box, and returns the box for images', () => {
   const box = { x: 0, y: 100, width: 200, height: 400 };
-  assert.deepEqual(visibleRect('video', box, { width: 1600, height: 900 }), { x: 0, y: 243.75, width: 200, height: 112.5 });
+  assert.deepEqual(visibleRect('video', box, { width: 1600, height: 900 }), {
+    x: 0,
+    y: 243.75,
+    width: 200,
+    height: 112.5,
+  });
   assert.equal(visibleRect('image', box, { width: 1600, height: 900 }), box);
   assert.equal(visibleRect('video', box, null), box);
 });

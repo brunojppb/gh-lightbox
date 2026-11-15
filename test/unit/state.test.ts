@@ -1,19 +1,11 @@
-// @ts-check
-import { test } from 'node:test';
+import { test } from 'vite-plus/test';
 import assert from 'node:assert/strict';
-import { reduce, keyCommand, clampIndex, CLOSED } from '../../extension/src/state.js';
+import { reduce, keyCommand, clampIndex, CLOSED } from '../../src/state.ts';
+import type { Gallery } from '../../src/types.ts';
+import type { LightboxState, LightboxEvent, Transition } from '../../src/state.ts';
 
-/** @typedef {import('../../extension/src/types.js').Gallery} Gallery */
-/** @typedef {import('../../extension/src/state.js').LightboxState} LightboxState */
-/** @typedef {import('../../extension/src/state.js').LightboxEvent} LightboxEvent */
-
-/**
- * @param {number} count
- * @param {number} start
- * @returns {Gallery}
- */
-function gallery(count, start) {
-  const item = (/** @type {number} */ i) => ({ kind: /** @type {const} */ ('image'), src: `u${i}`, caption: '', size: null, locate: () => null });
+function gallery(count: number, start: number): Gallery {
+  const item = (i: number) => ({ kind: 'image' as const, src: `u${i}`, caption: '', size: null, locate: () => null });
   const [first, ...rest] = Array.from({ length: count }, (_, i) => item(i));
   if (!first) throw new Error('count must be at least 1');
   return { items: [first, ...rest], start };
@@ -22,17 +14,22 @@ function gallery(count, start) {
 test('openGallery from closed mounts, renders the start item, and morphs in', () => {
   const { state, effects } = reduce(CLOSED, { type: 'openGallery', gallery: gallery(3, 1) });
   assert.equal(state.phase, 'opening');
-  assert.deepEqual(effects.map((e) => e.type), ['mount', 'render', 'morph']);
+  assert.deepEqual(
+    effects.map((e) => e.type),
+    ['mount', 'render', 'morph'],
+  );
 });
 
-/** @type {(count: number, phase: 'opening' | 'open' | 'closing', index?: number) => LightboxState} */
-const active = (count, phase, index = 0) => ({ phase, gallery: gallery(count, index), index });
+const active = (count: number, phase: 'opening' | 'open' | 'closing', index = 0): LightboxState => ({
+  phase,
+  gallery: gallery(count, index),
+  index,
+});
 
-/** @param {import('../../extension/src/state.js').Transition} t */
-const types = (t) => t.effects.map((e) => e.type);
+const types = (t: Transition) => t.effects.map((e) => e.type);
 
 test('a second openGallery while not closed does nothing (double click)', () => {
-  for (const phase of /** @type {const} */ (['opening', 'open', 'closing'])) {
+  for (const phase of ['opening', 'open', 'closing'] as const) {
     const state = active(3, phase);
     const t = reduce(state, { type: 'openGallery', gallery: gallery(2, 0) });
     assert.equal(t.state, state, phase);
@@ -43,12 +40,20 @@ test('a second openGallery while not closed does nothing (double click)', () => 
 test('close during opening starts the morph out (Escape during the open animation)', () => {
   const { state, effects } = reduce(active(3, 'opening', 1), { type: 'close' });
   assert.equal(state.phase, 'closing');
-  assert.deepEqual(effects.map((e) => e.type), ['morph']);
+  assert.deepEqual(
+    effects.map((e) => e.type),
+    ['morph'],
+  );
   assert.equal(effects[0]?.type === 'morph' && effects[0].direction, 'out');
 });
 
 test('a settled event for the other morph is ignored', () => {
-  for (const [phase, wrong] of /** @type {const} */ ([['opening', 'out'], ['closing', 'in'], ['open', 'in'], ['open', 'out']])) {
+  for (const [phase, wrong] of [
+    ['opening', 'out'],
+    ['closing', 'in'],
+    ['open', 'in'],
+    ['open', 'out'],
+  ] as const) {
     const state = active(2, phase);
     const t = reduce(state, { type: 'settled', morph: wrong });
     assert.equal(t.state, state, `${phase} ${wrong}`);
@@ -59,7 +64,7 @@ test('a settled event for the other morph is ignored', () => {
 });
 
 test('pageLeft from opening, open, and closing unmounts at once', () => {
-  for (const phase of /** @type {const} */ (['opening', 'open', 'closing'])) {
+  for (const phase of ['opening', 'open', 'closing'] as const) {
     const t = reduce(active(2, phase), { type: 'pageLeft' });
     assert.equal(t.state, CLOSED, phase);
     assert.deepEqual(types(t), ['unmount'], phase);
@@ -79,9 +84,12 @@ test('step stops at both ends and emits nothing there', () => {
 });
 
 test('step and jump are ignored while opening or closing', () => {
-  for (const phase of /** @type {const} */ (['opening', 'closing'])) {
+  for (const phase of ['opening', 'closing'] as const) {
     const state = active(3, phase, 1);
-    for (const event of /** @type {LightboxEvent[]} */ ([{ type: 'step', delta: 1 }, { type: 'jump', index: 0 }])) {
+    for (const event of [
+      { type: 'step', delta: 1 },
+      { type: 'jump', index: 0 },
+    ] as LightboxEvent[]) {
       const t = reduce(state, event);
       assert.equal(t.state, state);
       assert.deepEqual(t.effects, []);
@@ -110,10 +118,8 @@ test('clampIndex holds the index in range', () => {
 
 /**
  * @template T
- * @param {T} value
- * @returns {T}
  */
-function deepFreeze(value) {
+function deepFreeze<T>(value: T): T {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.freeze(value);
     for (const child of Object.values(value)) deepFreeze(child);
@@ -126,8 +132,7 @@ function deepFreeze(value) {
 test('state graph: every reachable state and every event keeps the invariants', () => {
   for (const count of [1, 3]) {
     const g = gallery(count, Math.floor(count / 2));
-    /** @type {LightboxEvent[]} */
-    const events = [
+    const events: LightboxEvent[] = [
       { type: 'openGallery', gallery: g },
       { type: 'step', delta: -1 },
       { type: 'step', delta: 1 },
@@ -139,13 +144,11 @@ test('state graph: every reachable state and every event keeps the invariants', 
       { type: 'settled', morph: 'out' },
       { type: 'pageLeft' },
     ];
-    /** @param {LightboxState} s */
-    const key = (s) => (s.phase === 'closed' ? 'closed' : `${s.phase}:${s.index}`);
-    /** @type {Map<string, LightboxState>} */
-    const seen = new Map([[key(CLOSED), CLOSED]]);
+    const key = (s: LightboxState) => (s.phase === 'closed' ? 'closed' : `${s.phase}:${s.index}`);
+    const seen = new Map<string, LightboxState>([[key(CLOSED), CLOSED]]);
     const queue = [CLOSED];
     while (queue.length > 0) {
-      const state = /** @type {LightboxState} */ (queue.shift());
+      const state = queue.shift() as LightboxState;
       deepFreeze(state);
       for (const event of events) {
         const label = `${key(state)} + ${event.type}`;
@@ -154,14 +157,26 @@ test('state graph: every reachable state and every event keeps the invariants', 
         if (next.phase !== 'closed') {
           assert.ok(next.index >= 0 && next.index < count, `${label}: index in range`);
         }
-        assert.equal(kinds.includes('mount'), state.phase === 'closed' && next.phase === 'opening', `${label}: mount only when opening from closed`);
-        assert.equal(kinds.includes('unmount'), state.phase !== 'closed' && next.phase === 'closed', `${label}: unmount iff the dialog goes away`);
+        assert.equal(
+          kinds.includes('mount'),
+          state.phase === 'closed' && next.phase === 'opening',
+          `${label}: mount only when opening from closed`,
+        );
+        assert.equal(
+          kinds.includes('unmount'),
+          state.phase !== 'closed' && next.phase === 'closed',
+          `${label}: unmount iff the dialog goes away`,
+        );
         const started = (next.phase === 'opening' || next.phase === 'closing') && next.phase !== state.phase;
         const morphs = effects.filter((e) => e.type === 'morph');
         assert.equal(morphs.length, started ? 1 : 0, `${label}: one morph per start`);
         if (started) {
           const [m] = morphs;
-          assert.equal(m?.type === 'morph' && m.direction, next.phase === 'opening' ? 'in' : 'out', `${label}: morph direction`);
+          assert.equal(
+            m?.type === 'morph' && m.direction,
+            next.phase === 'opening' ? 'in' : 'out',
+            `${label}: morph direction`,
+          );
         }
         if (state.phase === 'closed' && event.type !== 'openGallery') {
           assert.equal(next, state, `${label}: closed ignores it`);
@@ -177,7 +192,11 @@ test('state graph: every reachable state and every event keeps the invariants', 
       }
     }
     const phases = new Set([...seen.values()].map((s) => s.phase));
-    assert.deepEqual([...phases].sort(), ['closed', 'closing', 'open', 'opening'], `count ${count}: every phase reached`);
+    assert.deepEqual(
+      [...phases].sort(),
+      ['closed', 'closing', 'open', 'opening'],
+      `count ${count}: every phase reached`,
+    );
     assert.equal(seen.size, 2 + 2 * count, `count ${count}: closed, opening at start, open and closing at each index`);
   }
 });

@@ -17,8 +17,8 @@ The extension must not take over clicks, keys, or navigation that belong to GitH
 
 ## Driving it with Playwright
 
-- All covered by fixtures in `test/e2e/lightbox.spec.js`: "Cmd-click keeps the new tab", "an emoji click opens no lightbox", "an avatar click follows its link", "an image linked to another site follows the link", "GitHub shortcuts do not fire", "a pushState to another path closes the lightbox", "after a Turbo-style body swap".
-- Proof: the Playwright report from `npm run e2e`.
+- All covered by fixtures in `test/e2e/lightbox.spec.ts`: "Cmd-click keeps the new tab", "an emoji click opens no lightbox", "an avatar click follows its link", "an image linked to another site follows the link", "GitHub shortcuts do not fire", "a pushState to another path closes the lightbox", "after a Turbo-style body swap".
+- Proof: the Playwright report from `pnpm e2e`.
 
 ## Gotchas
 

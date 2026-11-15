@@ -1,11 +1,13 @@
-// @ts-check
 // Playwright with the unpacked extension on copies of GitHub pages. No GitHub session needed.
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { test as base, expect, chromium } from '@playwright/test';
+import type { BrowserContext, Locator, Page, Route } from '@playwright/test';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const EXTENSION = `${ROOT}extension`;
+// The build output. Each package script that loads the extension runs `vp build` first.
+const EXTENSION = `${ROOT}dist/extension`;
 const FIXTURES = `${ROOT}test/e2e/fixtures`;
 const PULL = 'https://github.com/acme/widgets/pull/7';
 const ISSUE = 'https://github.com/acme/widgets/issues/1';
@@ -21,18 +23,17 @@ const MEDIA = new Map([
   ['00000000-0000-4000-8000-000000000010', 'demo.webm'],
 ]);
 
-/**
- * @typedef {object} App
- * @property {import('@playwright/test').Page} page
- * @property {import('@playwright/test').BrowserContext} context
- * @property {import('@playwright/test').Locator} host  The lightbox host. Its data-phase is the lifecycle phase.
- */
+interface App {
+  page: Page;
+  context: BrowserContext;
+  /** The lightbox host. Its data-phase is the lifecycle phase. */
+  host: Locator;
+}
 
-/** @typedef {import('@playwright/test').Locator} Locator */
-
-/** @type {import('@playwright/test').TestType<import('@playwright/test').PlaywrightTestArgs & import('@playwright/test').PlaywrightTestOptions & { app: App }, import('@playwright/test').PlaywrightWorkerArgs & import('@playwright/test').PlaywrightWorkerOptions>} */
-const test = base.extend({
+const test = base.extend<{ app: App }>({
   // Playwright's own `context` and `page` stay unused: only a persistent context can load an extension.
+  // Playwright reads the fixtures a test uses from this pattern, so it must stay an object pattern.
+  // oxlint-disable-next-line no-empty-pattern
   app: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
@@ -40,26 +41,22 @@ const test = base.extend({
     });
     await routeFixtures(context);
     const page = await context.newPage();
-    /** @type {App} */
-    const app = { page, context, host: page.locator('gh-lightbox') };
+    const app: App = { page, context, host: page.locator('gh-lightbox') };
     await use(app);
     await context.close();
   },
 });
-
-/**
- * @param {import('@playwright/test').BrowserContext} context
- * @returns {Promise<void>}
- */
-async function routeFixtures(context) {
+async function routeFixtures(context: BrowserContext): Promise<void> {
   // The first route has the lowest priority. It keeps every other web request off the network.
   // It must skip chrome-extension: URLs, or the content script cannot load its modules.
   await context.route(/^https?:\/\//, (route) =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>stub</title><p>stub</p>' }),
   );
   await context.route(`${PULL}`, (route) => route.fulfill({ contentType: 'text/html', path: `${FIXTURES}/pull.html` }));
-  await context.route(`${ISSUE}`, (route) => route.fulfill({ contentType: 'text/html', path: `${FIXTURES}/issue.html` }));
-  const media = (/** @type {import('@playwright/test').Route} */ route) => {
+  await context.route(`${ISSUE}`, (route) =>
+    route.fulfill({ contentType: 'text/html', path: `${FIXTURES}/issue.html` }),
+  );
+  const media = (route: Route) => {
     const { pathname } = new URL(route.request().url());
     if (pathname.includes('/emoji/')) return route.fulfill({ path: `${FIXTURES}/emoji.png` });
     const file = [...MEDIA].find(([uuid]) => pathname.includes(uuid))?.[1] ?? 'shot-6.png';
@@ -73,13 +70,13 @@ async function routeFixtures(context) {
 
 /**
  * Answers a media request with byte ranges, as GitHub's media host does. Chrome cannot seek without them.
- * @param {import('@playwright/test').Route} route
- * @param {Buffer} body
- * @returns {Promise<void>}
  */
-function fulfillRange(route, body) {
+function fulfillRange(route: import('@playwright/test').Route, body: Buffer): Promise<void> {
   const headers = { 'content-type': 'video/webm', 'accept-ranges': 'bytes' };
-  const range = route.request().headers()['range']?.match(/^bytes=(\d+)-(\d*)$/);
+  const range = route
+    .request()
+    .headers()
+    ['range']?.match(/^bytes=(\d+)-(\d*)$/);
   if (!range) return route.fulfill({ headers, body });
   const start = Number(range[1]);
   const end = range[2] ? Number(range[2]) : body.length - 1;
@@ -92,44 +89,27 @@ function fulfillRange(route, body) {
 
 /**
  * Opens a fixture page and waits until the extension has started and the images have loaded.
- * @param {App} app
- * @param {string} url
- * @returns {Promise<void>}
  */
-async function visit({ page }, url) {
+async function visit({ page }: App, url: string): Promise<void> {
   await page.goto(url);
   await expect(page.locator('gh-lightbox[data-phase]')).toBeAttached();
   await page.waitForFunction(() => [...document.images].every((image) => image.complete));
 }
-
-/**
- * @param {App} app
- * @param {string} phase
- * @returns {Promise<void>}
- */
-async function expectPhase({ host }, phase) {
+async function expectPhase({ host }: App, phase: string): Promise<void> {
   await expect(host).toHaveAttribute('data-phase', phase);
 }
 
 /**
  * Reads a video's state from the page.
- * @param {Locator} video
- * @returns {Promise<{ paused: boolean, time: number }>}
  */
-function videoState(video) {
+function videoState(video: Locator): Promise<{ paused: boolean; time: number }> {
   return video.evaluate((el) => {
-    const v = /** @type {HTMLVideoElement} */ (el);
+    const v = el as HTMLVideoElement;
     return { paused: v.paused, time: v.currentTime };
   });
 }
-
-/**
- * @param {import('@playwright/test').Page} page
- * @param {string} id
- * @returns {Promise<string>}
- */
-function opacityOf(page, id) {
-  return page.evaluate((id) => getComputedStyle(/** @type {Element} */ (document.getElementById(id))).opacity, id);
+function opacityOf(page: Page, id: string): Promise<string> {
+  return page.evaluate((id) => getComputedStyle(document.getElementById(id) as Element).opacity, id);
 }
 
 test.describe('on a pull request page', () => {
@@ -165,7 +145,7 @@ test.describe('on a pull request page', () => {
     await page.locator('#i1').click();
     await expectPhase(app, 'opening');
     const start = await page.evaluate(() => {
-      const frame = /** @type {HTMLElement} */ (document.querySelector('gh-lightbox')?.shadowRoot?.querySelector('.frame'));
+      const frame = document.querySelector('gh-lightbox')?.shadowRoot?.querySelector('.frame') as HTMLElement;
       const [animation] = frame.getAnimations();
       if (!animation) return null;
       animation.pause();
@@ -242,15 +222,15 @@ test.describe('on a pull request page', () => {
     await page.locator('#i1').click();
     await expectPhase(app, 'open');
     await page.evaluate(() => {
-      const image = /** @type {HTMLElement} */ (document.getElementById('i1'));
-      const holder = /** @type {HTMLElement} */ (image.parentElement);
+      const image = document.getElementById('i1') as HTMLElement;
+      const holder = image.parentElement as HTMLElement;
       Object.assign(window, { detached: { image, holder } });
       image.remove();
     });
     await page.keyboard.press('Escape');
     await expectPhase(app, 'closed');
     await page.evaluate(() => {
-      const { image, holder } = /** @type {any} */ (window).detached;
+      const { image, holder } = (window as any).detached;
       holder.append(image);
     });
     expect(await opacityOf(page, 'i1')).toBe('1');
@@ -273,9 +253,8 @@ test.describe('on a pull request page', () => {
     const { page } = app;
     await visit(app, PULL);
     const phases = await page.evaluate(() => {
-      const host = /** @type {HTMLElement} */ (document.querySelector('gh-lightbox'));
-      /** @type {string[]} */
-      const seen = [];
+      const host = document.querySelector('gh-lightbox') as HTMLElement;
+      const seen: string[] = [];
       document.getElementById('i1')?.click();
       seen.push(host.dataset.phase ?? '');
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -352,7 +331,7 @@ test.describe('on a pull request page', () => {
 
   test('GitHub shortcuts do not fire while the lightbox is open', async ({ app }) => {
     const { page } = app;
-    const presses = () => page.evaluate(() => /** @type {any} */ (window).__j);
+    const presses = () => page.evaluate(() => (window as any).__j);
     await visit(app, PULL);
     await page.keyboard.press('j');
     expect(await presses()).toBe(1);
@@ -386,12 +365,13 @@ test.describe('on a pull request page', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.locator('#i1').click();
     const animation = await page.evaluate(() => {
-      const frame = /** @type {HTMLElement} */ (document.querySelector('gh-lightbox')?.shadowRoot?.querySelector('.frame'));
+      const frame = document.querySelector('gh-lightbox')?.shadowRoot?.querySelector('.frame') as HTMLElement;
       const [first] = frame.getAnimations();
-      const effect = /** @type {KeyframeEffect} */ (first?.effect);
+      const effect = first?.effect as KeyframeEffect;
       return {
         duration: effect.getTiming().duration,
-        transforms: effect.getKeyframes().filter((k) => k['transform'] !== undefined && k['transform'] !== 'none').length,
+        transforms: effect.getKeyframes().filter((k) => k['transform'] !== undefined && k['transform'] !== 'none')
+          .length,
         opacity: effect.getKeyframes().map((k) => k['opacity']),
       };
     });
@@ -404,7 +384,7 @@ test.describe('on a pull request page', () => {
   test('after a Turbo-style body swap, a click still opens the lightbox', async ({ app }) => {
     const { page } = app;
     await visit(app, PULL);
-    await page.evaluate(() => document.body.replaceWith(/** @type {HTMLElement} */ (document.body.cloneNode(true))));
+    await page.evaluate(() => document.body.replaceWith(document.body.cloneNode(true) as HTMLElement));
     await page.waitForFunction(() => [...document.images].every((image) => image.complete));
     await page.locator('#i1').click();
     await expectPhase(app, 'open');
@@ -417,13 +397,13 @@ test.describe('on a pull request page', () => {
     const stage = page.locator('gh-lightbox video.media');
     await visit(app, PULL);
     await pageVideo.scrollIntoViewIfNeeded();
-    await page.waitForFunction(() => /** @type {HTMLVideoElement} */ (document.getElementById('v1')).readyState >= 3);
+    await page.waitForFunction(() => (document.getElementById('v1') as HTMLVideoElement).readyState >= 3);
 
     await pageVideo.click();
     await expectPhase(app, 'closed');
     await expect.poll(async () => (await videoState(pageVideo)).paused).toBe(false);
     await pageVideo.evaluate((el) => {
-      const video = /** @type {HTMLVideoElement} */ (el);
+      const video = el as HTMLVideoElement;
       video.pause();
       video.currentTime = 2;
     });
@@ -570,5 +550,35 @@ test.describe('on an issue page', () => {
     // A single item has no counter and no strip.
     await expect(page.locator('gh-lightbox .counter')).toBeHidden();
     await expect(page.locator('gh-lightbox .strip')).toBeHidden();
+  });
+});
+
+/** Returns the ID that Chrome gives an unpacked extension: a SHA-256 of its folder path, as letters a to p. */
+function unpackedExtensionId(path: string): string {
+  const hex = createHash('sha256').update(realpathSync(path)).digest('hex').slice(0, 32);
+  return hex.replace(/[0-9a-f]/g, (digit) => String.fromCharCode(97 + parseInt(digit, 16)));
+}
+
+test.describe('extension files', () => {
+  test('a page on github.com cannot load any extension file, so it cannot detect the extension', async ({ app }) => {
+    const base = `chrome-extension://${unpackedExtensionId(EXTENSION)}`;
+    // The browser itself can open the manifest. That proves the ID is right.
+    const control = await app.context.newPage();
+    await control.goto(`${base}/manifest.json`);
+    expect(JSON.parse(await control.locator('body').innerText())).toMatchObject({ name: 'Lightbox for GitHub' });
+    await control.close();
+
+    await visit(app, ISSUE);
+    for (const file of ['manifest.json', 'content.js', 'icons/icon-128.png']) {
+      const loaded = await app.page.evaluate(
+        (url) =>
+          fetch(url).then(
+            () => true,
+            () => false,
+          ),
+        `${base}/${file}`,
+      );
+      expect(loaded, file).toBe(false);
+    }
   });
 });

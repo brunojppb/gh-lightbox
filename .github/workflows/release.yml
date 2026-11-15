@@ -20,20 +20,18 @@ jobs:
           # `changeset git-tag` checks local tags only, so it needs every existing tag.
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      # Installs the Node and pnpm versions that mise.toml pins.
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      # With changesets on main: open or update the version pull request.
-      # Without: tag the current version if it has no tag, then create its GitHub release from CHANGELOG.md.
+          version: 2026.11.8
+      - run: pnpm install --frozen-lockfile
       - id: changesets
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          version-script: npm run version-packages
-          publish-script: npm run release
-          commit-message: "chore: version packages"
-          pr-title: "chore: version packages"
+          version-script: pnpm version-packages
+          publish-script: pnpm release
+          commit-message: 'chore: version packages'
+          pr-title: 'chore: version packages'
       - name: Attach the extension zip to the release
         if: steps.changesets.outputs.published == 'true'
         env:
@@ -41,6 +39,8 @@ jobs:
           PUBLISHED: ${{ steps.changesets.outputs.published-packages }}
         run: |
           version=$(jq -r '.[0].version' <<<"$PUBLISHED")
-          zip_file=$(npm run -s package)
+          pnpm build
+          # The script prints only the zip path. pnpm would print the command too.
+          zip_file=$(node scripts/package.ts)
           [[ "$zip_file" == */gh-lightbox-v$version.zip ]] || { echo "built $zip_file, expected v$version"; exit 1; }
           gh release upload "v$version" "$zip_file" --clobber

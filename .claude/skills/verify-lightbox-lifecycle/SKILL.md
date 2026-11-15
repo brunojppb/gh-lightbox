@@ -1,15 +1,15 @@
 ---
 name: verify-lightbox-lifecycle
-description: Bounded model check of the gh-lightbox lifecycle reducer (extension/src/state.js). Proves for every event sequence, on galleries of 1 to 8 items, that the overlay can always close, never leaks a mount, never restarts a morph, and never changes the item mid-morph. Use when a change touches state.js or the effects that lightbox.js runs.
+description: Bounded model check of the gh-lightbox lifecycle reducer (src/state.ts). Proves for every event sequence, on galleries of 1 to 8 items, that the overlay can always close, never leaks a mount, never restarts a morph, and never changes the item mid-morph. Use when a change touches src/state.ts or the effects that src/lightbox.ts runs.
 ---
 
 # Verify the lightbox lifecycle
 
 ## What it proves
 
-The lightbox is a modal dialog over all of GitHub. If its lifecycle sticks, the user can no longer use the page. `reduce(state, event)` in `extension/src/state.js` holds every lifecycle rule as a pure function.
+The lightbox is a modal dialog over all of GitHub. If its lifecycle sticks, the user can no longer use the page. `reduce(state, event)` in `src/state.ts` holds every lifecycle rule as a pure function.
 
-`scripts/check-lifecycle.mjs` explores every state that `reduce` can reach from `CLOSED`, for galleries of 1 to 8 items. It applies every event in every state: `openGallery` at each start index, `step` both ways, `jump` to every index and out of range, `close`, `settled` in and out, and `pageLeft`. The state space is finite, so the check covers event sequences of any length within that bound.
+`scripts/check-lifecycle.ts` explores every state that `reduce` can reach from `CLOSED`, for galleries of 1 to 8 items. It applies every event in every state: `openGallery` at each start index, `step` both ways, `jump` to every index and out of range, `close`, `settled` in and out, and `pageLeft`. The state space is finite, so the check covers event sequences of any length within that bound.
 
 Properties, each with the harm it prevents:
 
@@ -24,7 +24,7 @@ Properties, each with the harm it prevents:
 ## Run it
 
 ```sh
-npm run -s verify:lifecycle
+pnpm verify:lifecycle
 ```
 
 It takes under a second. A pass prints `PASS: 116 states and 2224 transitions for galleries of 1 to 8 items.` A failure prints `FAIL` and up to 20 violations, each as `count N, <phase>:<index> + <event>: <property>`. Read that as: with N items, in that phase at that index, that event broke that property.
@@ -32,12 +32,12 @@ It takes under a second. A pass prints `PASS: 116 states and 2224 transitions fo
 ## Real bug or model error
 
 - The check calls the real `reduce`. There is no hand-written model of the reducer, so a violation is a real reducer behavior.
-- It does not cover `lightbox.js`, which runs the effects. A violation can therefore be intended only if you also change how `lightbox.js` runs effects. In that case, change the property in the script in the same commit, and say why in the commit message.
+- It does not cover `lightbox.ts`, which runs the effects. A violation can therefore be intended only if you also change how `lightbox.ts` runs effects. In that case, change the property in the script in the same commit, and say why in the commit message.
 - Never weaken a property to make a failing change pass. Fix `reduce` or report the finding.
 
 ## It can fail
 
-These broken variants of `state.js` each fail the check. Each was run on commit `0275731`.
+These broken variants of `state.ts` each fail the check. Each was run on commit `8198921`, after the move to TypeScript.
 
 | Broken variant | Property that catches it |
 | --- | --- |
@@ -47,11 +47,11 @@ These broken variants of `state.js` each fail the check. Each was run on commit 
 | `step` allowed while `closing` | 3 no item change mid-morph |
 | `close` while `closing` morphs again | 4 one morph per phase start |
 
-To repeat one: edit the line in `extension/src/state.js`, run the check, see `FAIL`, then run `git checkout extension/src/state.js`.
+To repeat one: edit the line in `src/state.ts`, run the check, see `FAIL`, then run `git checkout src/state.ts`.
 
 ## Coverage record
 
-- Files: `extension/src/state.js` (`reduce`, `clampIndex`, `CLOSED`), `extension/src/types.js` (`Gallery`).
-- Not covered: `keyCommand` (unit tests cover it), the effect runner in `extension/src/lightbox.js`, the DOM, and real animation timing. The e2e tests and the `verify-gh-lightbox` skill cover those.
+- Files: `src/state.ts` (`reduce`, `clampIndex`, `CLOSED`), `src/types.ts` (`Gallery`).
+- Not covered: `keyCommand` (unit tests cover it), the effect runner in `src/lightbox.ts`, the DOM, and real animation timing. The e2e tests and the `verify-gh-lightbox` skill cover those.
 - Bound: galleries of 1 to 8 items. `reduce` treats every index the same, so a bug that needs more than 8 items is unlikely, but this check does not prove its absence.
-- Sync commit: `0275731`. When `state.js` changes after this commit, read the diff, confirm the properties still describe it, run the check, then move this commit forward.
+- Sync commit: `8198921`. When `state.ts` changes after this commit, read the diff, confirm the properties still describe it, run the check, then move this commit forward.

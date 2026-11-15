@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
     "target": "es2023",
-    "module": "es2022",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "lib": ["es2023", "dom", "dom.iterable"],
-    "types": ["node"],
-    "allowJs": true,
-    "checkJs": true,
+    "types": ["node", "vite-plus/client"],
     "noEmit": true,
     "strict": true,
     "noUnusedLocals": true,
-    "exactOptionalPropertyTypes": true
+    "exactOptionalPropertyTypes": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true
   },
-  "include": ["extension/**/*.js", "types/**/*.d.ts", "test/**/*.js", "scripts/**/*.mjs"]
+  "include": ["src", "test", "scripts", "types", "vite.config.ts", "playwright.config.ts"]
 }
