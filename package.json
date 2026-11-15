@@ -10,7 +10,9 @@
     "verify:lifecycle": "node scripts/check-lifecycle.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version && node scripts/sync-manifest-version.mjs",
-    "release": "changeset git-tag"
+    "release": "changeset git-tag",
+    "store:assets": "node scripts/store-assets.mjs",
+    "package": "node scripts/package.mjs"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",
@@ -18,5 +20,6 @@
     "@playwright/test": "~1.57.0",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
-  }
+  },
+  "license": "MIT"
 }

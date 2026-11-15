@@ -41,6 +41,10 @@ jobs:
       - name: Manifest version matches package.json
         run: node scripts/sync-manifest-version.mjs && git diff --exit-code extension/manifest.json
 
+      # The same zip goes to the Chrome Web Store, so its contents are checked here.
+      - name: Package the extension
+        run: npm run -s package
+
       # The live check (npm run verify:live) is left out: it depends on public GitHub pages and signed media URLs.
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
