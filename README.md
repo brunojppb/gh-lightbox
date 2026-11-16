@@ -6,7 +6,7 @@ A Chrome extension. It opens images and videos from GitHub issues and pull reque
 
 ## Install
 
-Install it from the Chrome Web Store. The store link comes with the first release there.
+Install [Lightbox for GitHub from the Chrome Web Store](https://chromewebstore.google.com/detail/lightbox-for-github/icoilmbldibbgblbalabppdipkpgkodi).
 
 Chrome 132 or newer is needed. The extension collects no data and asks for no permissions. `PRIVACY.md` has the details.
 

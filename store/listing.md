@@ -2,6 +2,8 @@
 
 This file holds the text for the Chrome Web Store dashboard. Copy each part into its field. Change the listing here first, so a pull request reviews it.
 
+See the [public listing on the Chrome Web Store](https://chromewebstore.google.com/detail/lightbox-for-github/icoilmbldibbgblbalabppdipkpgkodi).
+
 ## Store listing tab
 
 **Name** comes from `public/manifest.json`: Lightbox for GitHub.
