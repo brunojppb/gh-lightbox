@@ -23,7 +23,7 @@ jobs:
       # Installs the Node and pnpm versions that mise.toml pins.
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
         with:
-          version: 2026.11.9
+          version: 2026.11.10
       - run: pnpm install --frozen-lockfile
       - id: changesets
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
