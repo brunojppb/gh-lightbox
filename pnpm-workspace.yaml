@@ -4,7 +4,7 @@ savePrefix: ''
 # Vite+ needs every package that imports vite or vitest to get its own copies.
 # Keep both in step with the vite-plus version.
 overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@1.6.0
+  vite: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vitest: 5.1.1
 
 # The vite override above is the Vite+ core package, so its version (1.6.0) is outside
