@@ -116,6 +116,46 @@ function opacityOf(page: Page, id: string): Promise<string> {
   return page.evaluate((id) => getComputedStyle(document.getElementById(id) as Element).opacity, id);
 }
 
+/**
+ * Returns how far the drawn glyph's centre sits from the button's centre, in CSS pixels.
+ * It reads the pixels of a screenshot, so it sees the ink, not the font's line box.
+ */
+async function glyphOffset(page: Page, button: Locator): Promise<{ dx: number; dy: number }> {
+  const box = await button.boundingBox();
+  const png = (await button.screenshot()).toString('base64');
+  return page.evaluate(
+    async ({ png, width }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d') as CanvasRenderingContext2D;
+      context.drawImage(image, 0, 0);
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+      // The glyph is white. The button and the backdrop behind it are dark grey.
+      let [left, top, right, bottom] = [Infinity, Infinity, -Infinity, -Infinity];
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          if (Math.min(data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0) < 160) continue;
+          left = Math.min(left, x);
+          right = Math.max(right, x + 1);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y + 1);
+        }
+      }
+      const scale = canvas.width / width;
+      return {
+        dx: ((left + right) / 2 - canvas.width / 2) / scale,
+        dy: ((top + bottom) / 2 - canvas.height / 2) / scale,
+      };
+    },
+    { png, width: box?.width ?? NaN },
+  );
+}
+
 test.describe('on a pull request page', () => {
   test('a click opens the lightbox on that image, with counter and caption, and no new tab', async ({ app }) => {
     const { page, context } = app;
@@ -198,6 +238,21 @@ test.describe('on a pull request page', () => {
     await expect(counter).toHaveText('1 / 4');
     await expect(prev).toBeHidden();
     await expectPhase(app, 'open');
+  });
+
+  test('the arrow glyphs sit in the centre of their buttons', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i2').click();
+    await expectPhase(app, 'open');
+    const offsets = {
+      prev: await glyphOffset(page, page.locator('gh-lightbox .prev')),
+      next: await glyphOffset(page, page.locator('gh-lightbox .next')),
+    };
+    for (const [name, { dx, dy }] of Object.entries(offsets)) {
+      expect.soft(Math.abs(dx), `${name} dx`).toBeLessThanOrEqual(1);
+      expect.soft(Math.abs(dy), `${name} dy`).toBeLessThanOrEqual(1);
+    }
   });
 
   test('a thumbnail jumps to its item', async ({ app }) => {
@@ -622,7 +677,8 @@ test.describe('on an issue page', () => {
         const { x, y, width, height } = (root.querySelector(selector) as HTMLElement).getBoundingClientRect();
         const hit = root.elementFromPoint(x + width / 2, y + height / 2);
         animation.finish();
-        return hit?.className ?? 'nothing';
+        // The arrow holds an SVG, so the hit can be its icon. The click still goes to the button.
+        return hit?.closest('button, .frame')?.className ?? 'nothing';
       }, selector);
     // Small to Wide slides in from the right, over Next.
     await page.keyboard.press('ArrowRight');
@@ -636,10 +692,10 @@ test.describe('on an issue page', () => {
     expect(await hitAtArrowMidSlide('.prev')).toBe('prev');
   });
 
-  // The arrows sit further in on a wide window, and keep to the edge on a phone, where width is scarce.
+  // The arrows sit further in on a wide window than on a phone, where width is scarce.
   for (const { inset, ...viewport } of [
-    { width: 1280, height: 800, inset: 40 },
-    { width: 390, height: 844, inset: 16 },
+    { width: 1280, height: 800, inset: 80 },
+    { width: 390, height: 844, inset: 32 },
   ]) {
     test(`the controls stay in one place for images of very different sizes at ${viewport.width}x${viewport.height}`, async ({
       app,

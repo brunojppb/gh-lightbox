@@ -56,13 +56,13 @@ dialog {
   display: grid;
   grid-template-rows: auto 1fr auto;
   /* Distance from the window edge to each arrow. The stage padding is the inset, the 40px arrow and a 16px gap. */
-  --arrow-inset: 40px;
+  --arrow-inset: 80px;
   --stage-side: calc(var(--arrow-inset) + 56px);
 }
-/* On a phone, width is scarce: the arrows keep to the edge, so the image loses 48px less on each side. */
+/* On a phone, width is scarce: the arrows sit closer to the edge, so the image loses 48px less on each side. */
 @media (max-width: 600px) {
   dialog {
-    --arrow-inset: 16px;
+    --arrow-inset: 32px;
   }
 }
 dialog:not([open]) {
@@ -170,6 +170,21 @@ button:focus-visible {
   z-index: 1;
   top: 50%;
   translate: 0 -50%;
+}
+.prev,
+.next {
+  display: grid;
+  place-items: center;
+}
+.prev svg,
+.next svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .prev {
   left: var(--arrow-inset);
