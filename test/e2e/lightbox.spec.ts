@@ -19,6 +19,10 @@ const MEDIA = new Map([
   ['00000000-0000-4000-8000-000000000003', 'shot-3.png'],
   ['00000000-0000-4000-8000-000000000004', 'shot-4.png'],
   ['00000000-0000-4000-8000-000000000005', 'shot-5.png'],
+  ['00000000-0000-4000-8000-000000000021', 'size-small.png'],
+  ['00000000-0000-4000-8000-000000000022', 'size-wide.png'],
+  ['00000000-0000-4000-8000-000000000023', 'size-tall.png'],
+  ['00000000-0000-4000-8000-000000000024', 'size-large.png'],
   ['00000000-0000-4000-8000-0000000000a1', 'avatar.png'],
   ['00000000-0000-4000-8000-000000000010', 'demo.webm'],
 ]);
@@ -112,6 +116,46 @@ function opacityOf(page: Page, id: string): Promise<string> {
   return page.evaluate((id) => getComputedStyle(document.getElementById(id) as Element).opacity, id);
 }
 
+/**
+ * Returns how far the drawn glyph's centre sits from the button's centre, in CSS pixels.
+ * It reads the pixels of a screenshot, so it sees the ink, not the font's line box.
+ */
+async function glyphOffset(page: Page, button: Locator): Promise<{ dx: number; dy: number }> {
+  const box = await button.boundingBox();
+  const png = (await button.screenshot()).toString('base64');
+  return page.evaluate(
+    async ({ png, width }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d') as CanvasRenderingContext2D;
+      context.drawImage(image, 0, 0);
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+      // The glyph is white. The button and the backdrop behind it are dark grey.
+      let [left, top, right, bottom] = [Infinity, Infinity, -Infinity, -Infinity];
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          if (Math.min(data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0) < 160) continue;
+          left = Math.min(left, x);
+          right = Math.max(right, x + 1);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y + 1);
+        }
+      }
+      const scale = canvas.width / width;
+      return {
+        dx: ((left + right) / 2 - canvas.width / 2) / scale,
+        dy: ((top + bottom) / 2 - canvas.height / 2) / scale,
+      };
+    },
+    { png, width: box?.width ?? NaN },
+  );
+}
+
 test.describe('on a pull request page', () => {
   test('a click opens the lightbox on that image, with counter and caption, and no new tab', async ({ app }) => {
     const { page, context } = app;
@@ -168,18 +212,22 @@ test.describe('on a pull request page', () => {
     await visit(app, PULL);
     await page.locator('#i1').click();
     await expectPhase(app, 'open');
-    await expect(prev).toBeDisabled();
+    await expect(prev).toBeHidden();
+    await expect(next).toBeVisible();
 
     await page.keyboard.press('ArrowLeft');
     await expect(counter).toHaveText('1 / 4');
     await page.keyboard.press('ArrowRight');
     await expect(counter).toHaveText('2 / 4');
+    await expect(prev).toBeVisible();
+    await expect(next).toBeVisible();
     await next.click();
     await expect(counter).toHaveText('3 / 4');
     await page.keyboard.press('ArrowRight');
     await expect(counter).toHaveText('4 / 4');
     await expect(page.locator('gh-lightbox .caption')).toHaveText('Hidden shot');
-    await expect(next).toBeDisabled();
+    await expect(next).toBeHidden();
+    await expect(prev).toBeVisible();
 
     await page.keyboard.press('ArrowRight');
     await expect(counter).toHaveText('4 / 4');
@@ -188,8 +236,23 @@ test.describe('on a pull request page', () => {
     await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
     await expect(counter).toHaveText('1 / 4');
-    await expect(prev).toBeDisabled();
+    await expect(prev).toBeHidden();
     await expectPhase(app, 'open');
+  });
+
+  test('the arrow glyphs sit in the centre of their buttons', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i2').click();
+    await expectPhase(app, 'open');
+    const offsets = {
+      prev: await glyphOffset(page, page.locator('gh-lightbox .prev')),
+      next: await glyphOffset(page, page.locator('gh-lightbox .next')),
+    };
+    for (const [name, { dx, dy }] of Object.entries(offsets)) {
+      expect.soft(Math.abs(dx), `${name} dx`).toBeLessThanOrEqual(1);
+      expect.soft(Math.abs(dy), `${name} dy`).toBeLessThanOrEqual(1);
+    }
   });
 
   test('a thumbnail jumps to its item', async ({ app }) => {
@@ -490,7 +553,19 @@ test.describe('on a pull request page', () => {
     await expect(page.locator('gh-lightbox .counter')).toHaveText('3 / 4');
   });
 
-  test('focus stays in the lightbox when the focused Next button becomes disabled', async ({ app }) => {
+  test('a hidden arrow cannot take focus', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i1').click();
+    await expectPhase(app, 'open');
+    const prev = page.locator('gh-lightbox .prev');
+    await expect(prev).toBeHidden();
+    expect(
+      await prev.evaluate((button) => (button.focus(), button.getRootNode() as ShadowRoot).activeElement === button),
+    ).toBe(false);
+  });
+
+  test('focus stays in the lightbox when the focused Next button hides', async ({ app }) => {
     const { page } = app;
     await visit(app, PULL);
     await page.locator('#i1').click();
@@ -498,7 +573,7 @@ test.describe('on a pull request page', () => {
     await page.locator('gh-lightbox .next').focus();
     for (let i = 0; i < 3; i++) await page.keyboard.press('Enter');
     await expect(page.locator('gh-lightbox .counter')).toHaveText('4 / 4');
-    await expect(page.locator('gh-lightbox .next')).toBeDisabled();
+    await expect(page.locator('gh-lightbox .next')).toBeHidden();
     expect(await page.evaluate(() => document.activeElement?.localName)).toBe('gh-lightbox');
     const before = await page.evaluate(() => window.scrollY);
     await page.keyboard.press('Space');
@@ -550,7 +625,119 @@ test.describe('on an issue page', () => {
     // A single item has no counter and no strip.
     await expect(page.locator('gh-lightbox .counter')).toBeHidden();
     await expect(page.locator('gh-lightbox .strip')).toBeHidden();
+    // A single item has no arrows, and the X stays in its place at the top right.
+    await expect(page.locator('gh-lightbox .prev')).toBeHidden();
+    await expect(page.locator('gh-lightbox .next')).toBeHidden();
+    const close = await page.locator('gh-lightbox .close').boundingBox();
+    const width = page.viewportSize()?.width ?? NaN;
+    expect((close?.x ?? NaN) + (close?.width ?? NaN)).toBeCloseTo(width - 16, 0);
   });
+
+  test('in a short viewport, a click on the centre of each arrow steps, over the caption and strip', async ({
+    app,
+  }) => {
+    const { page } = app;
+    await page.setViewportSize({ width: 390, height: 200 });
+    await visit(app, ISSUE);
+    await page.locator('#s1').scrollIntoViewIfNeeded();
+    await page.locator('#s1').click();
+    await expectPhase(app, 'open');
+    const counter = page.locator('gh-lightbox .counter');
+    await expect(page.locator('gh-lightbox .caption')).toHaveText('Small');
+    // A real click at the centre, so whatever paints on top there gets it.
+    const clickCentre = async (selector: string) => {
+      const box = await page.locator(selector).boundingBox();
+      await page.mouse.click((box?.x ?? NaN) + (box?.width ?? NaN) / 2, (box?.y ?? NaN) + (box?.height ?? NaN) / 2);
+    };
+    await clickCentre('gh-lightbox .next');
+    await expect(counter).toHaveText('2 / 4');
+    await clickCentre('gh-lightbox .next');
+    await expect(counter).toHaveText('3 / 4');
+    await expect(page.locator('gh-lightbox .caption')).toHaveText('Tall');
+    await clickCentre('gh-lightbox .prev');
+    await expect(counter).toHaveText('2 / 4');
+  });
+
+  test('mid-slide, the frame does not cover either arrow', async ({ app }) => {
+    const { page } = app;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await visit(app, ISSUE);
+    await page.locator('#s1').scrollIntoViewIfNeeded();
+    await page.locator('#s1').click();
+    await expectPhase(app, 'open');
+    const counter = page.locator('gh-lightbox .counter');
+    // Pauses the slide at its start, where the frame sits 40px off its place, and names the element at the arrow centre.
+    const hitAtArrowMidSlide = (selector: string) =>
+      page.evaluate((selector) => {
+        const root = document.querySelector('gh-lightbox')?.shadowRoot as ShadowRoot;
+        const [animation] = (root.querySelector('.frame') as HTMLElement).getAnimations();
+        if (!animation) return 'no slide';
+        animation.pause();
+        animation.currentTime = 0;
+        const { x, y, width, height } = (root.querySelector(selector) as HTMLElement).getBoundingClientRect();
+        const hit = root.elementFromPoint(x + width / 2, y + height / 2);
+        animation.finish();
+        // The arrow holds an SVG, so the hit can be its icon. The click still goes to the button.
+        return hit?.closest('button, .frame')?.className ?? 'nothing';
+      }, selector);
+    // Small to Wide slides in from the right, over Next.
+    await page.keyboard.press('ArrowRight');
+    await expect(counter).toHaveText('2 / 4');
+    expect(await hitAtArrowMidSlide('.next')).toBe('next');
+    await page.keyboard.press('ArrowRight');
+    await expect(counter).toHaveText('3 / 4');
+    // Tall to Wide slides in from the left, over Previous.
+    await page.keyboard.press('ArrowLeft');
+    await expect(counter).toHaveText('2 / 4');
+    expect(await hitAtArrowMidSlide('.prev')).toBe('prev');
+  });
+
+  // The arrows sit further in on a wide window than on a phone, where width is scarce.
+  for (const { inset, ...viewport } of [
+    { width: 1280, height: 800, inset: 80 },
+    { width: 390, height: 844, inset: 32 },
+  ]) {
+    test(`the controls stay in one place for images of very different sizes at ${viewport.width}x${viewport.height}`, async ({
+      app,
+    }) => {
+      const { page } = app;
+      await page.setViewportSize(viewport);
+      await visit(app, ISSUE);
+      await page.locator('#s1').scrollIntoViewIfNeeded();
+      await page.locator('#s1').click();
+      await expectPhase(app, 'open');
+      const counter = page.locator('gh-lightbox .counter');
+      const boxes = { close: [] as unknown[], prev: [] as unknown[], next: [] as unknown[] };
+      const frames: ({ x: number; width: number } | null)[] = [];
+      for (let i = 1; i <= 4; i++) {
+        await expect(counter).toHaveText(`${i} / 4`);
+        await expect(page.locator('gh-lightbox img.media')).toHaveAttribute(
+          'src',
+          new RegExp(`-0000000000${20 + i}\\.png`),
+        );
+        // The frame may still slide; the controls must not depend on it.
+        await page.waitForTimeout(400);
+        boxes.close.push(await page.locator('gh-lightbox .close').boundingBox());
+        if (i > 1) boxes.prev.push(await page.locator('gh-lightbox .prev').boundingBox());
+        if (i < 4) boxes.next.push(await page.locator('gh-lightbox .next').boundingBox());
+        frames.push(await page.locator('gh-lightbox .frame').boundingBox());
+        if (i < 4) await page.keyboard.press('ArrowRight');
+      }
+      for (const list of Object.values(boxes)) {
+        expect(list[0]).not.toBeNull();
+        for (const box of list) expect(box).toEqual(list[0]);
+      }
+      const prev = boxes.prev[0] as { x: number; width: number };
+      const next = boxes.next[0] as { x: number; width: number };
+      expect(prev.x).toBeCloseTo(inset, 0);
+      expect(viewport.width - (next.x + next.width)).toBeCloseTo(inset, 0);
+      // The settled frame keeps at least a 16px gap to each arrow.
+      for (const frame of frames) {
+        expect(frame?.x ?? NaN).toBeGreaterThanOrEqual(prev.x + prev.width + 16 - 0.5);
+        expect((frame?.x ?? NaN) + (frame?.width ?? NaN)).toBeLessThanOrEqual(next.x - 16 + 0.5);
+      }
+    });
+  }
 });
 
 /** Returns the ID that Chrome gives an unpacked extension: a SHA-256 of its folder path, as letters a to p. */

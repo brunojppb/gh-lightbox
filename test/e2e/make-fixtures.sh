@@ -13,3 +13,9 @@ cp shot-1.png avatar.png
 # VP8 and Opus: Playwright's Chromium has no H.264.
 ffmpeg -loglevel error -y -f lavfi -i "testsrc2=s=640x360:r=15:d=6" -f lavfi -i "sine=f=440:d=6" \
   -c:v libvpx -b:v 200k -c:a libopus -shortest demo.webm
+# Four very different sizes, for the test that the controls stay put.
+for spec in small:160x120:ff4444 wide:1600x200:44aa44 tall:300x1500:4466ff large:2400x1600:ffaa22; do
+  name=${spec%%:*}
+  rest=${spec#*:}
+  ffmpeg -loglevel error -y -f lavfi -i "color=c=0x${rest#*:}:s=${rest%%:*}" -frames:v 1 "size-$name.png"
+done

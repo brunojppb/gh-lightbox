@@ -70,8 +70,8 @@ async function drive(context: import('@playwright/test').BrowserContext, target:
   await page.waitForTimeout(500);
   const last = await shadow.locator('.counter').textContent();
   record(name, 'thumbnail jumps to the last item', last === `${count} / ${count}`, `"${last}", ${count} thumbs`);
-  const nextDisabled = await shadow.locator('.next').isDisabled();
-  record(name, 'next button disabled at the end', nextDisabled);
+  const nextHidden = await shadow.locator('.next').isHidden();
+  record(name, 'next button hidden at the end', nextHidden);
   await snap(page, name, '05-last');
 
   await page.keyboard.press('Escape');

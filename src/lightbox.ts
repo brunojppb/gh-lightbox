@@ -106,10 +106,11 @@ function renderItem(view: View, effect: Extract<Effect, { type: 'render' }>): vo
   view.caption.textContent = item.caption;
   view.caption.hidden = item.caption === '';
   const focused = (view.dialog.getRootNode() as ShadowRoot).activeElement;
-  view.prevButton.disabled = index === 0;
-  view.nextButton.disabled = index === count - 1;
-  // A disabled button drops focus to the inert body, and Space then scrolls the page.
-  if ((focused === view.prevButton || focused === view.nextButton) && (focused as HTMLButtonElement).disabled) {
+  // No arrow where there is no item. A hidden button takes no focus and no click.
+  view.prevButton.hidden = index === 0;
+  view.nextButton.hidden = index === count - 1;
+  // A hidden button drops focus to the inert body, and Space then scrolls the page.
+  if ((focused === view.prevButton || focused === view.nextButton) && (focused as HTMLButtonElement).hidden) {
     view.frame.focus();
   }
   for (const button of view.strip.querySelectorAll('button')) {
@@ -277,20 +278,19 @@ function buildView(root: ShadowRoot): View {
   const frame = el('div', 'frame', { tabindex: '-1', autofocus: '' });
   frame.append(image, video);
   const prevButton = el('button', 'prev', { 'aria-label': 'Previous' });
-  prevButton.textContent = '\u2039';
+  prevButton.append(chevron(-1));
   const nextButton = el('button', 'next', { 'aria-label': 'Next' });
-  nextButton.textContent = '\u203a';
-  // The viewer takes the frame's size, so the buttons sit beside the media.
-  const viewer = el('div', 'viewer');
-  viewer.append(prevButton, frame, nextButton);
+  nextButton.append(chevron(1));
   const stage = el('div', 'stage');
-  stage.append(viewer);
+  stage.append(frame);
   const caption = el('p', 'caption', { 'aria-live': 'polite' });
   const strip = el('ol', 'strip');
   const footer = el('footer');
   footer.append(caption, strip);
 
-  dialog.append(backdrop, header, stage, footer);
+  // The arrows sit at the viewport edges, not beside the media, so they stay put when the item changes.
+  // Their place in the DOM keeps the tab order: close, previous, next, strip.
+  dialog.append(backdrop, header, prevButton, stage, nextButton, footer);
   root.append(dialog);
 
   // The natural size can arrive after the open, when the page had not loaded the media.
@@ -315,6 +315,21 @@ function buildView(root: ShadowRoot): View {
     strip,
     parts: { frame, backdrop, controls: [header, prevButton, nextButton, footer] },
   };
+}
+
+/**
+ * Makes a chevron icon that points left or right. A text glyph sits wherever the font puts it, so the arrows use a path
+ * whose ink box is centred in the view box.
+ */
+function chevron(direction: -1 | 1): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', direction === 1 ? 'M6 3l4 5-4 5' : 'M10 3l-4 5 4 5');
+  svg.append(path);
+  return svg;
 }
 
 /** Makes an element, with attributes. */

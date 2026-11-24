@@ -55,6 +55,15 @@ dialog {
     sans-serif;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* Distance from the window edge to each arrow. The stage padding is the inset, the 40px arrow and a 16px gap. */
+  --arrow-inset: 80px;
+  --stage-side: calc(var(--arrow-inset) + 56px);
+}
+/* On a phone, width is scarce: the arrows sit closer to the edge, so the image loses 48px less on each side. */
+@media (max-width: 600px) {
+  dialog {
+    --arrow-inset: 32px;
+  }
 }
 dialog:not([open]) {
   display: none;
@@ -106,10 +115,6 @@ button:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
 }
-button:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
 
 .close,
 .prev,
@@ -122,9 +127,13 @@ button:disabled {
   font-size: 22px;
   line-height: 40px;
 }
+.close {
+  /* The counter is hidden for a single item. The X stays at the right. */
+  margin-left: auto;
+}
 .close:hover,
-.prev:hover:not(:disabled),
-.next:hover:not(:disabled) {
+.prev:hover,
+.next:hover {
   background: rgb(255 255 255 / 0.2);
 }
 
@@ -133,7 +142,7 @@ button:disabled {
   display: grid;
   place-items: center;
   min-height: 0;
-  padding: 8px 72px;
+  padding: 8px var(--stage-side);
 }
 
 /* Contain fit. --w and --h come from the natural size. --max-w stops an image growing past it. */
@@ -153,23 +162,35 @@ button:disabled {
   object-fit: contain;
 }
 
-/* The stage padding leaves room for the buttons outside the frame. */
-.viewer {
-  position: relative;
-}
+/* Fixed to the viewport edges, so they stay put for every item. The stage padding keeps them off the settled frame.
+   They paint on top, so the sliding frame and, in a short viewport, the caption never take their clicks. */
 .prev,
 .next {
   position: absolute;
+  z-index: 1;
   top: 50%;
   translate: 0 -50%;
 }
+.prev,
+.next {
+  display: grid;
+  place-items: center;
+}
+.prev svg,
+.next svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .prev {
-  right: 100%;
-  margin-right: 16px;
+  left: var(--arrow-inset);
 }
 .next {
-  left: 100%;
-  margin-left: 16px;
+  right: var(--arrow-inset);
 }
 
 footer {
