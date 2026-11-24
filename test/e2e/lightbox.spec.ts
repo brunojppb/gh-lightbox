@@ -636,9 +636,10 @@ test.describe('on an issue page', () => {
     expect(await hitAtArrowMidSlide('.prev')).toBe('prev');
   });
 
-  for (const viewport of [
-    { width: 1280, height: 800 },
-    { width: 390, height: 844 },
+  // The arrows sit further in on a wide window, and keep to the edge on a phone, where width is scarce.
+  for (const { inset, ...viewport } of [
+    { width: 1280, height: 800, inset: 40 },
+    { width: 390, height: 844, inset: 16 },
   ]) {
     test(`the controls stay in one place for images of very different sizes at ${viewport.width}x${viewport.height}`, async ({
       app,
@@ -651,6 +652,7 @@ test.describe('on an issue page', () => {
       await expectPhase(app, 'open');
       const counter = page.locator('gh-lightbox .counter');
       const boxes = { close: [] as unknown[], prev: [] as unknown[], next: [] as unknown[] };
+      const frames: ({ x: number; width: number } | null)[] = [];
       for (let i = 1; i <= 4; i++) {
         await expect(counter).toHaveText(`${i} / 4`);
         await expect(page.locator('gh-lightbox img.media')).toHaveAttribute(
@@ -662,11 +664,21 @@ test.describe('on an issue page', () => {
         boxes.close.push(await page.locator('gh-lightbox .close').boundingBox());
         if (i > 1) boxes.prev.push(await page.locator('gh-lightbox .prev').boundingBox());
         if (i < 4) boxes.next.push(await page.locator('gh-lightbox .next').boundingBox());
+        frames.push(await page.locator('gh-lightbox .frame').boundingBox());
         if (i < 4) await page.keyboard.press('ArrowRight');
       }
       for (const list of Object.values(boxes)) {
         expect(list[0]).not.toBeNull();
         for (const box of list) expect(box).toEqual(list[0]);
+      }
+      const prev = boxes.prev[0] as { x: number; width: number };
+      const next = boxes.next[0] as { x: number; width: number };
+      expect(prev.x).toBeCloseTo(inset, 0);
+      expect(viewport.width - (next.x + next.width)).toBeCloseTo(inset, 0);
+      // The settled frame keeps at least a 16px gap to each arrow.
+      for (const frame of frames) {
+        expect(frame?.x ?? NaN).toBeGreaterThanOrEqual(prev.x + prev.width + 16 - 0.5);
+        expect((frame?.x ?? NaN) + (frame?.width ?? NaN)).toBeLessThanOrEqual(next.x - 16 + 0.5);
       }
     });
   }

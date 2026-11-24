@@ -55,6 +55,15 @@ dialog {
     sans-serif;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* Distance from the window edge to each arrow. The stage padding is the inset, the 40px arrow and a 16px gap. */
+  --arrow-inset: 40px;
+  --stage-side: calc(var(--arrow-inset) + 56px);
+}
+/* On a phone, width is scarce: the arrows keep to the edge, so the image loses 48px less on each side. */
+@media (max-width: 600px) {
+  dialog {
+    --arrow-inset: 16px;
+  }
 }
 dialog:not([open]) {
   display: none;
@@ -133,7 +142,7 @@ button:focus-visible {
   display: grid;
   place-items: center;
   min-height: 0;
-  padding: 8px 72px;
+  padding: 8px var(--stage-side);
 }
 
 /* Contain fit. --w and --h come from the natural size. --max-w stops an image growing past it. */
@@ -163,10 +172,10 @@ button:focus-visible {
   translate: 0 -50%;
 }
 .prev {
-  left: 16px;
+  left: var(--arrow-inset);
 }
 .next {
-  right: 16px;
+  right: var(--arrow-inset);
 }
 
 footer {
