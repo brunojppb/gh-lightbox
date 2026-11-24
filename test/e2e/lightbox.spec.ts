@@ -19,6 +19,10 @@ const MEDIA = new Map([
   ['00000000-0000-4000-8000-000000000003', 'shot-3.png'],
   ['00000000-0000-4000-8000-000000000004', 'shot-4.png'],
   ['00000000-0000-4000-8000-000000000005', 'shot-5.png'],
+  ['00000000-0000-4000-8000-000000000021', 'size-small.png'],
+  ['00000000-0000-4000-8000-000000000022', 'size-wide.png'],
+  ['00000000-0000-4000-8000-000000000023', 'size-tall.png'],
+  ['00000000-0000-4000-8000-000000000024', 'size-large.png'],
   ['00000000-0000-4000-8000-0000000000a1', 'avatar.png'],
   ['00000000-0000-4000-8000-000000000010', 'demo.webm'],
 ]);
@@ -168,18 +172,22 @@ test.describe('on a pull request page', () => {
     await visit(app, PULL);
     await page.locator('#i1').click();
     await expectPhase(app, 'open');
-    await expect(prev).toBeDisabled();
+    await expect(prev).toBeHidden();
+    await expect(next).toBeVisible();
 
     await page.keyboard.press('ArrowLeft');
     await expect(counter).toHaveText('1 / 4');
     await page.keyboard.press('ArrowRight');
     await expect(counter).toHaveText('2 / 4');
+    await expect(prev).toBeVisible();
+    await expect(next).toBeVisible();
     await next.click();
     await expect(counter).toHaveText('3 / 4');
     await page.keyboard.press('ArrowRight');
     await expect(counter).toHaveText('4 / 4');
     await expect(page.locator('gh-lightbox .caption')).toHaveText('Hidden shot');
-    await expect(next).toBeDisabled();
+    await expect(next).toBeHidden();
+    await expect(prev).toBeVisible();
 
     await page.keyboard.press('ArrowRight');
     await expect(counter).toHaveText('4 / 4');
@@ -188,7 +196,7 @@ test.describe('on a pull request page', () => {
     await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
     await expect(counter).toHaveText('1 / 4');
-    await expect(prev).toBeDisabled();
+    await expect(prev).toBeHidden();
     await expectPhase(app, 'open');
   });
 
@@ -490,7 +498,19 @@ test.describe('on a pull request page', () => {
     await expect(page.locator('gh-lightbox .counter')).toHaveText('3 / 4');
   });
 
-  test('focus stays in the lightbox when the focused Next button becomes disabled', async ({ app }) => {
+  test('a hidden arrow cannot take focus', async ({ app }) => {
+    const { page } = app;
+    await visit(app, PULL);
+    await page.locator('#i1').click();
+    await expectPhase(app, 'open');
+    const prev = page.locator('gh-lightbox .prev');
+    await expect(prev).toBeHidden();
+    expect(
+      await prev.evaluate((button) => (button.focus(), button.getRootNode() as ShadowRoot).activeElement === button),
+    ).toBe(false);
+  });
+
+  test('focus stays in the lightbox when the focused Next button hides', async ({ app }) => {
     const { page } = app;
     await visit(app, PULL);
     await page.locator('#i1').click();
@@ -498,7 +518,7 @@ test.describe('on a pull request page', () => {
     await page.locator('gh-lightbox .next').focus();
     for (let i = 0; i < 3; i++) await page.keyboard.press('Enter');
     await expect(page.locator('gh-lightbox .counter')).toHaveText('4 / 4');
-    await expect(page.locator('gh-lightbox .next')).toBeDisabled();
+    await expect(page.locator('gh-lightbox .next')).toBeHidden();
     expect(await page.evaluate(() => document.activeElement?.localName)).toBe('gh-lightbox');
     const before = await page.evaluate(() => window.scrollY);
     await page.keyboard.press('Space');
@@ -550,7 +570,48 @@ test.describe('on an issue page', () => {
     // A single item has no counter and no strip.
     await expect(page.locator('gh-lightbox .counter')).toBeHidden();
     await expect(page.locator('gh-lightbox .strip')).toBeHidden();
+    // A single item has no arrows, and the X stays in its place at the top right.
+    await expect(page.locator('gh-lightbox .prev')).toBeHidden();
+    await expect(page.locator('gh-lightbox .next')).toBeHidden();
+    const close = await page.locator('gh-lightbox .close').boundingBox();
+    const width = page.viewportSize()?.width ?? NaN;
+    expect((close?.x ?? NaN) + (close?.width ?? NaN)).toBeCloseTo(width - 16, 0);
   });
+
+  for (const viewport of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`the controls stay in one place for images of very different sizes at ${viewport.width}x${viewport.height}`, async ({
+      app,
+    }) => {
+      const { page } = app;
+      await page.setViewportSize(viewport);
+      await visit(app, ISSUE);
+      await page.locator('#s1').scrollIntoViewIfNeeded();
+      await page.locator('#s1').click();
+      await expectPhase(app, 'open');
+      const counter = page.locator('gh-lightbox .counter');
+      const boxes = { close: [] as unknown[], prev: [] as unknown[], next: [] as unknown[] };
+      for (let i = 1; i <= 4; i++) {
+        await expect(counter).toHaveText(`${i} / 4`);
+        await expect(page.locator('gh-lightbox img.media')).toHaveAttribute(
+          'src',
+          new RegExp(`-0000000000${20 + i}\\.png`),
+        );
+        // The frame may still slide; the controls must not depend on it.
+        await page.waitForTimeout(400);
+        boxes.close.push(await page.locator('gh-lightbox .close').boundingBox());
+        if (i > 1) boxes.prev.push(await page.locator('gh-lightbox .prev').boundingBox());
+        if (i < 4) boxes.next.push(await page.locator('gh-lightbox .next').boundingBox());
+        if (i < 4) await page.keyboard.press('ArrowRight');
+      }
+      for (const list of Object.values(boxes)) {
+        expect(list[0]).not.toBeNull();
+        for (const box of list) expect(box).toEqual(list[0]);
+      }
+    });
+  }
 });
 
 /** Returns the ID that Chrome gives an unpacked extension: a SHA-256 of its folder path, as letters a to p. */

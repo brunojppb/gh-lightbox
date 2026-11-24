@@ -106,10 +106,11 @@ function renderItem(view: View, effect: Extract<Effect, { type: 'render' }>): vo
   view.caption.textContent = item.caption;
   view.caption.hidden = item.caption === '';
   const focused = (view.dialog.getRootNode() as ShadowRoot).activeElement;
-  view.prevButton.disabled = index === 0;
-  view.nextButton.disabled = index === count - 1;
-  // A disabled button drops focus to the inert body, and Space then scrolls the page.
-  if ((focused === view.prevButton || focused === view.nextButton) && (focused as HTMLButtonElement).disabled) {
+  // No arrow where there is no item. A hidden button takes no focus and no click.
+  view.prevButton.hidden = index === 0;
+  view.nextButton.hidden = index === count - 1;
+  // A hidden button drops focus to the inert body, and Space then scrolls the page.
+  if ((focused === view.prevButton || focused === view.nextButton) && (focused as HTMLButtonElement).hidden) {
     view.frame.focus();
   }
   for (const button of view.strip.querySelectorAll('button')) {
@@ -280,17 +281,16 @@ function buildView(root: ShadowRoot): View {
   prevButton.textContent = '\u2039';
   const nextButton = el('button', 'next', { 'aria-label': 'Next' });
   nextButton.textContent = '\u203a';
-  // The viewer takes the frame's size, so the buttons sit beside the media.
-  const viewer = el('div', 'viewer');
-  viewer.append(prevButton, frame, nextButton);
   const stage = el('div', 'stage');
-  stage.append(viewer);
+  stage.append(frame);
   const caption = el('p', 'caption', { 'aria-live': 'polite' });
   const strip = el('ol', 'strip');
   const footer = el('footer');
   footer.append(caption, strip);
 
-  dialog.append(backdrop, header, stage, footer);
+  // The arrows sit at the viewport edges, not beside the media, so they stay put when the item changes.
+  // Their place in the DOM keeps the tab order: close, previous, next, strip.
+  dialog.append(backdrop, header, prevButton, stage, nextButton, footer);
   root.append(dialog);
 
   // The natural size can arrive after the open, when the page had not loaded the media.

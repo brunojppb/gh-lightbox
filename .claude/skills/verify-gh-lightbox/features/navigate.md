@@ -5,7 +5,7 @@ The lightbox shows the media of the clicked comment only: the issue or PR body, 
 ## Sub-features
 
 - `nav-keys` moves with ArrowLeft and ArrowRight.
-- `nav-buttons` moves with `.prev` and `.next`. A button is disabled at its end.
+- `nav-buttons` moves with `.prev` and `.next`. A button is hidden at its end, and both are hidden for a single item. They sit at the viewport edges, so they do not move between items.
 - `nav-strip` jumps with a thumbnail.
 - `nav-scope` keeps each comment as its own gallery.
 
@@ -16,7 +16,7 @@ The lightbox shows the media of the clicked comment only: the issue or PR body, 
 ## Driving it with Playwright
 
 - **Keys.** Open on `Bars`. Press ArrowRight. `.caption` reads `Test source`.
-- **Strip.** Click the last `.strip button`. `.counter` reads `total / total`, and `.next` is disabled.
+- **Strip.** Click the last `.strip button`. `.counter` reads `total / total`, and `.next` is hidden.
 - **Scope.** Open on `.markdown-body img[alt="Comment image"]`. `.counter` and `.strip` are hidden, because the comment holds one image.
 - **Proof.** `*-04-next.png`, `*-05-last.png`, and `*-09-comment.png` from `pnpm verify:live`.
 

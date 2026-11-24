@@ -106,10 +106,6 @@ button:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
 }
-button:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
 
 .close,
 .prev,
@@ -122,9 +118,13 @@ button:disabled {
   font-size: 22px;
   line-height: 40px;
 }
+.close {
+  /* The counter is hidden for a single item. The X stays at the right. */
+  margin-left: auto;
+}
 .close:hover,
-.prev:hover:not(:disabled),
-.next:hover:not(:disabled) {
+.prev:hover,
+.next:hover {
   background: rgb(255 255 255 / 0.2);
 }
 
@@ -153,10 +153,7 @@ button:disabled {
   object-fit: contain;
 }
 
-/* The stage padding leaves room for the buttons outside the frame. */
-.viewer {
-  position: relative;
-}
+/* Fixed to the viewport edges, so they stay put for every item. The stage padding keeps them off the frame. */
 .prev,
 .next {
   position: absolute;
@@ -164,12 +161,10 @@ button:disabled {
   translate: 0 -50%;
 }
 .prev {
-  right: 100%;
-  margin-right: 16px;
+  left: 16px;
 }
 .next {
-  left: 100%;
-  margin-left: 16px;
+  right: 16px;
 }
 
 footer {
