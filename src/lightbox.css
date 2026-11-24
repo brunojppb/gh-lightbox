@@ -153,10 +153,12 @@ button:focus-visible {
   object-fit: contain;
 }
 
-/* Fixed to the viewport edges, so they stay put for every item. The stage padding keeps them off the frame. */
+/* Fixed to the viewport edges, so they stay put for every item. The stage padding keeps them off the settled frame.
+   They paint on top, so the sliding frame and, in a short viewport, the caption never take their clicks. */
 .prev,
 .next {
   position: absolute;
+  z-index: 1;
   top: 50%;
   translate: 0 -50%;
 }

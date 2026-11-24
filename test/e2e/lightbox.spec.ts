@@ -578,6 +578,64 @@ test.describe('on an issue page', () => {
     expect((close?.x ?? NaN) + (close?.width ?? NaN)).toBeCloseTo(width - 16, 0);
   });
 
+  test('in a short viewport, a click on the centre of each arrow steps, over the caption and strip', async ({
+    app,
+  }) => {
+    const { page } = app;
+    await page.setViewportSize({ width: 390, height: 200 });
+    await visit(app, ISSUE);
+    await page.locator('#s1').scrollIntoViewIfNeeded();
+    await page.locator('#s1').click();
+    await expectPhase(app, 'open');
+    const counter = page.locator('gh-lightbox .counter');
+    await expect(page.locator('gh-lightbox .caption')).toHaveText('Small');
+    // A real click at the centre, so whatever paints on top there gets it.
+    const clickCentre = async (selector: string) => {
+      const box = await page.locator(selector).boundingBox();
+      await page.mouse.click((box?.x ?? NaN) + (box?.width ?? NaN) / 2, (box?.y ?? NaN) + (box?.height ?? NaN) / 2);
+    };
+    await clickCentre('gh-lightbox .next');
+    await expect(counter).toHaveText('2 / 4');
+    await clickCentre('gh-lightbox .next');
+    await expect(counter).toHaveText('3 / 4');
+    await expect(page.locator('gh-lightbox .caption')).toHaveText('Tall');
+    await clickCentre('gh-lightbox .prev');
+    await expect(counter).toHaveText('2 / 4');
+  });
+
+  test('mid-slide, the frame does not cover either arrow', async ({ app }) => {
+    const { page } = app;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await visit(app, ISSUE);
+    await page.locator('#s1').scrollIntoViewIfNeeded();
+    await page.locator('#s1').click();
+    await expectPhase(app, 'open');
+    const counter = page.locator('gh-lightbox .counter');
+    // Pauses the slide at its start, where the frame sits 40px off its place, and names the element at the arrow centre.
+    const hitAtArrowMidSlide = (selector: string) =>
+      page.evaluate((selector) => {
+        const root = document.querySelector('gh-lightbox')?.shadowRoot as ShadowRoot;
+        const [animation] = (root.querySelector('.frame') as HTMLElement).getAnimations();
+        if (!animation) return 'no slide';
+        animation.pause();
+        animation.currentTime = 0;
+        const { x, y, width, height } = (root.querySelector(selector) as HTMLElement).getBoundingClientRect();
+        const hit = root.elementFromPoint(x + width / 2, y + height / 2);
+        animation.finish();
+        return hit?.className ?? 'nothing';
+      }, selector);
+    // Small to Wide slides in from the right, over Next.
+    await page.keyboard.press('ArrowRight');
+    await expect(counter).toHaveText('2 / 4');
+    expect(await hitAtArrowMidSlide('.next')).toBe('next');
+    await page.keyboard.press('ArrowRight');
+    await expect(counter).toHaveText('3 / 4');
+    // Tall to Wide slides in from the left, over Previous.
+    await page.keyboard.press('ArrowLeft');
+    await expect(counter).toHaveText('2 / 4');
+    expect(await hitAtArrowMidSlide('.prev')).toBe('prev');
+  });
+
   for (const viewport of [
     { width: 1280, height: 800 },
     { width: 390, height: 844 },
