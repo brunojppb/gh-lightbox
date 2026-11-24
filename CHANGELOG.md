@@ -1,5 +1,11 @@
 # gh-lightbox
 
+## 0.2.1
+
+### Patch Changes
+
+- [#28](https://github.com/brunojppb/gh-lightbox/pull/28) [`17da2c7`](https://github.com/brunojppb/gh-lightbox/commit/17da2c732739fe145c758726312a3dfdd1af635f) Thanks [@guldenmw](https://github.com/guldenmw)! - Keep the lightbox arrows and close button in one place for every image, and hide an arrow when there is no item in its direction.
+
 ## 0.2.0
 
 ### Minor Changes
