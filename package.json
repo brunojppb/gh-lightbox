@@ -23,7 +23,7 @@
     "@playwright/test": "1.65.1",
     "@types/node": "26.6.6",
     "typescript": "7.0.2",
-    "vite-plus": "1.6.0"
+    "vite-plus": "1.8.0"
   },
   "engines": {
     "node": ">=26"
