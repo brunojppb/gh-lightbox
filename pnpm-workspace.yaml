@@ -5,7 +5,7 @@ savePrefix: ''
 # Keep both in step with the vite-plus version.
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@1.6.0
-  vitest: 5.1.1
+  vitest: 5.1.2
 
 # The vite override above is the Vite+ core package, so its version (1.6.0) is outside
 # the vite range that Vitest asks for. Vite+ ships the two to work together.
